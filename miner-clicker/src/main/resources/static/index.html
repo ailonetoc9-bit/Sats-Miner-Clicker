@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6edcf">
+  <title>Miner Clicker — Minha garagem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">M</span><div><strong>MINER CLUB</strong><small>SUA GARAGEM</small></div></div>
+      <div class="online-pill"><i></i> ONLINE</div>
+    </header>
+
+    <section class="wallet-bar" aria-label="Seus saldos">
+      <div class="wallet-card coin-card"><span class="wallet-icon">₿</span><div><small>MOEDAS</small><strong id="moedas">0</strong></div></div>
+      <div class="wallet-card sat-card"><span class="wallet-icon">◉</span><div><small>SALDO DE SATS</small><strong><span id="satoshisAcumulados">0</span><em> sats</em></strong></div></div>
+    </section>
+
+    <main>
+      <div class="section-heading"><div><span class="eyebrow">SEU CANTINHO</span><h1>Garagem de mineração</h1></div></div>
+      <section class="room-card" aria-label="Cenário da garagem de mineração">
+        <div class="room-topline"><span class="room-live" id="roomStatus"><i></i> MINERANDO</span></div>
+        <button id="palco-jogo" class="clicavel" type="button" aria-label="Clique para minerar moedas">
+          <span class="click-label">TOQUE PARA MINERAR</span>
+          <span id="efeito-clique" aria-hidden="true"></span>
+          <span id="floating-layer" aria-hidden="true"></span>
+        </button>
+        <div class="room-bottom"><span>⛏️ <b id="poderClique">1</b> moeda por toque</span><span>⚡ <b id="rendaPassiva">0</b>/s</span></div>
+      </section>
+      <p class="hint"><span>👆</span> Toque no cenário para minerar moedas</p>
+
+      <section class="room-stats" aria-label="Progresso">
+        <div class="stat-card"><span class="stat-icon purple">◈</span><div><small>LIBERADOS HOJE</small><strong id="satoshisLiberados">0</strong></div><span class="stat-unit">/ 100</span></div>
+        <div class="stat-card"><span class="stat-icon orange">⚙</span><div><small>TOKENS DE SAQUE</small><strong id="tokensSaque">0</strong></div><span class="stat-unit">TOKENS</span></div>
+      </section>
+
+      <nav class="tabs" aria-label="Ações do jogo"><button class="tab active" type="button" data-tab="loja">🛠️ <span>Setup</span></button><button class="tab" type="button" data-tab="equipe">👷 <span>Equipe</span></button><button class="tab" type="button" data-tab="tarefas">🎯 <span>Tarefas</span></button><button class="tab" type="button" data-tab="saque">₿ <span>Carteira</span></button></nav>
+      <section class="tab-panel" id="painel-loja">
+        <div class="panel-heading"><div><span class="eyebrow">EVOLUA SEU SETUP</span><h2>Oficina</h2></div><span class="panel-decoration">✦</span></div>
+        <button class="upgrade-card" type="button" onclick="comprarUpgrade()"><span class="upgrade-art mouse-art" id="iconeUpgrade">⌨️</span><span class="upgrade-copy"><strong id="nomeUpgrade">Teclado mecânico</strong><small id="descricaoUpgrade">Teclas mais rápidas para minerar</small><b>+<span id="bonusUpgrade">1</span> <i>moeda/toque</i></b></span><span class="price-tag">🟡 <span id="custoUpgrade">100</span></span></button>
+      </section>
+      <section class="tab-panel hidden" id="painel-equipe"><div class="panel-heading"><div><span class="eyebrow">RENDA PASSIVA ONLINE E OFFLINE</span><h2>Contratados</h2></div><span class="panel-decoration">✦</span></div><div id="contractor-list" class="dynamic-list"></div></section>
+      <section class="tab-panel hidden" id="painel-tarefas"><div class="panel-heading"><div><span class="eyebrow">CUMPRA E RESGATE SATS</span><h2>Tarefas diárias</h2></div><span class="panel-decoration">🎯</span></div><div id="task-list" class="dynamic-list"></div></section>
+      <section class="tab-panel hidden" id="painel-saque">
+        <div class="panel-heading"><div><span class="eyebrow">SEU PROGRESSO</span><h2>Carteira</h2></div><span class="panel-decoration">◈</span></div>
+        <div class="wallet-summary"><span>Disponível para sacar agora</span><strong><span id="saldoCarteira">0</span> <small>SATS</small></strong><p>Até 100 sats liberados por dia. O saldo acumulado pode passar desse limite.</p></div>
+        <button class="action-button secondary" type="button" onclick="verAnuncioSaque()"><span>🎟️</span><span><strong>Ganhar token de saque</strong><small>Assistir anúncio para liberar</small></span><b>›</b></button>
+        <label class="withdraw-field">Valor do saque<input id="valorSaque" type="number" min="1" max="100" value="2" inputmode="numeric"></label>
+        <button class="action-button cashout" type="button" onclick="sacarSatoshis()"><span>₿</span><span><strong>Sacar sats liberados</strong><small>Usa 1 token de saque · fictício nesta versão</small></span><b>›</b></button>
+      </section>
+      <section class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
+      <section class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
+      <p id="statusMessage" class="status-message" role="status" aria-live="polite">Conectando à garagem...</p>
+    </main>
+    <footer><span>MINER CLUB</span><span>MINERE COM CONSISTÊNCIA ✦</span></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,7 +1,8 @@
 package com.jose.minerclicker.controller;
 
-import com.jose.minerclicker.model.Jogador;
+import com.jose.minerclicker.model.GameState;
 import com.jose.minerclicker.service.JogadorService;
+import com.jose.minerclicker.service.TelegramAuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,59 +10,70 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/game")
 @CrossOrigin(origins = "*")
 public class GameController {
-
     private final JogadorService jogadorService;
+    private final TelegramAuthService telegramAuth;
 
-    public GameController(JogadorService jogadorService) {
+    public GameController(JogadorService jogadorService, TelegramAuthService telegramAuth) {
         this.jogadorService = jogadorService;
+        this.telegramAuth = telegramAuth;
+    }
+
+    private TelegramAuthService.Usuario usuario(String initData, String idTeste, String nomeTeste) {
+        return telegramAuth.validar(initData, idTeste, nomeTeste);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Jogador> login(@RequestParam String telegramId, @RequestParam String nome) {
-        Jogador jogador = jogadorService.obterOuCriarJogador(telegramId, nome);
-        // O login já serve como uma sincronização, pois calcula o tempo que ele ficou offline!
-        jogador = jogadorService.processarProgresso(telegramId, 0);
-        return ResponseEntity.ok(jogador);
+    public ResponseEntity<GameState> login(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @RequestParam(required = false) String nome) {
+        var usuario = usuario(initData, telegramId, nome);
+        return ResponseEntity.ok(jogadorService.obterOuCriarJogador(usuario.id(), usuario.nome()));
     }
 
     @PostMapping("/sync")
-    public ResponseEntity<Jogador> sincronizar(@RequestParam String telegramId, @RequestParam int cliques) {
-        Jogador jogadorAtualizado = jogadorService.processarProgresso(telegramId, cliques);
-        return ResponseEntity.ok(jogadorAtualizado);
+    public ResponseEntity<GameState> sincronizar(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @RequestParam(defaultValue = "0") int cliques) {
+        return ResponseEntity.ok(jogadorService.processarProgresso(usuario(initData, telegramId, null).id(), cliques));
     }
 
-    // Endpoint para comprar itens
     @PostMapping("/comprar")
-    public ResponseEntity<Jogador> comprar(
-            @RequestParam String telegramId,
-            @RequestParam String tipo, // "CLIQUE" ou "PASSIVO"
-            @RequestParam long preco,
-            @RequestParam int poderAdicional) {
-
-        Jogador jogadorAtualizado = jogadorService.comprarUpgrade(telegramId, tipo, preco, poderAdicional);
-        return ResponseEntity.ok(jogadorAtualizado);
+    public ResponseEntity<GameState> comprarUpgrade(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId) {
+        return ResponseEntity.ok(jogadorService.comprarUpgrade(usuario(initData, telegramId, null).id()));
     }
-    // Assiste anúncio para resfriar a garagem
+
+    @PostMapping("/contratados/comprar")
+    public ResponseEntity<GameState> comprarContratado(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @RequestParam String contratadoId) {
+        return ResponseEntity.ok(jogadorService.comprarContratado(usuario(initData, telegramId, null).id(), contratadoId));
+    }
+
+    @PostMapping("/tarefas/resgatar")
+    public ResponseEntity<GameState> resgatarTarefa(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @RequestParam String tarefaId) {
+        return ResponseEntity.ok(jogadorService.resgatarTarefa(usuario(initData, telegramId, null).id(), tarefaId));
+    }
+
+    @PostMapping("/ads/dobrar")
+    public ResponseEntity<GameState> dobrarGanhos(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId) {
+        return ResponseEntity.ok(jogadorService.dobrarGanhos(usuario(initData, telegramId, null).id()));
+    }
+
     @PostMapping("/ads/resfriar")
-    public ResponseEntity<Jogador> resfriarPC(@RequestParam String telegramId) {
-        Jogador atualizado = jogadorService.resfriarPC(telegramId);
-        return ResponseEntity.ok(atualizado);
+    public ResponseEntity<GameState> resfriarPC(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId) {
+        return ResponseEntity.ok(jogadorService.resfriarPC(usuario(initData, telegramId, null).id()));
     }
 
-    // Assiste anúncio para ganhar token de gás
     @PostMapping("/ads/token-saque")
-    public ResponseEntity<Jogador> gerarToken(@RequestParam String telegramId) {
-        Jogador atualizado = jogadorService.ganharTokenSaque(telegramId);
-        return ResponseEntity.ok(atualizado);
+    public ResponseEntity<GameState> gerarToken(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId) {
+        return ResponseEntity.ok(jogadorService.ganharTokenSaque(usuario(initData, telegramId, null).id()));
     }
 
-    // Efetua o saque
     @PostMapping("/sacar")
-    public ResponseEntity<Jogador> sacar(
-            @RequestParam String telegramId,
-            @RequestParam int valorSatoshis) {
-
-        Jogador atualizado = jogadorService.realizarSaque(telegramId, valorSatoshis);
-        return ResponseEntity.ok(atualizado);
+    public ResponseEntity<GameState> sacar(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @RequestParam int valorSatoshis) {
+        return ResponseEntity.ok(jogadorService.realizarSaque(usuario(initData, telegramId, null).id(), valorSatoshis));
     }
 }

@@ -1,10 +1,18 @@
 package com.jose.minerclicker.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Id;
-
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.Column;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Entity
 public class Jogador {
@@ -14,30 +22,50 @@ public class Jogador {
     private String nome;
 
     private long moedasVirtuais;
-    private int satoshisDiariosGanhos;
+    private int satoshisGanhosHoje;
 
     private int nivelGaragem;
     private int poderDeMineracaoPorClique;
-
     private long rendaPassivaPorSegundo;
+    private double fracaoMoedasPassivas;
 
     private LocalDateTime ultimaSincronizacao;
 
-    // Variáveis de controle de Satoshis e Tempo
-    private int saldoSatoshisAcumulados; // Total que ele tem guardado (pode ser > 120)
-    private int satoshisLiberadosHoje; // O que ele já desbloqueou hoje (máx 120)
-    private long tempoAtivoHojeSegundos; // Conta os segundos jogados no dia atual
-    private LocalDate ultimoDiaJogado; // Para resetar a meia-noite
-
-    // Variáveis de controle de Satoshis e Tempo
-    private int saldoSatoshisAcumulados;
-    private int satoshisGanhosHoje; // Limite de 120
+    // Variáveis de controlo de Satoshis e Tempo
+    private long saldoSatoshisAcumulados;
     private long tempoAtivoHojeSegundos;
     private LocalDate ultimoDiaJogado;
 
     // Variáveis de Monetização (Anúncios)
-    private LocalDateTime ultimoResfriamento; // Controla a temperatura do PC
+    private LocalDateTime ultimoResfriamento;
     private int tokensDeSaque;
+    private int satoshisLiberadosHoje;
+    private int satoshisSacadosHoje;
+    private LocalDateTime bonusDobroAte;
+    private long segundosPcAtivoDesdeResfriamento;
+
+    @ElementCollection
+    @CollectionTable(name = "jogador_contratados", joinColumns = @JoinColumn(name = "telegram_id"))
+    @MapKeyColumn(name = "contratado_id")
+    @Column(name = "nivel")
+    private Map<String, Integer> niveisContratados = new HashMap<>();
+
+    @ElementCollection
+    @CollectionTable(name = "jogador_tarefas", joinColumns = @JoinColumn(name = "telegram_id"))
+    @MapKeyColumn(name = "tarefa_id")
+    @Column(name = "progresso")
+    private Map<String, Long> progressoTarefas = new HashMap<>();
+
+    @ElementCollection
+    @CollectionTable(name = "jogador_tarefas_resgatadas", joinColumns = @JoinColumn(name = "telegram_id"))
+    @Column(name = "tarefa_id")
+    private Set<String> tarefasResgatadas = new HashSet<>();
+
+    @ElementCollection
+    @CollectionTable(name = "jogador_ciclos_tarefas", joinColumns = @JoinColumn(name = "telegram_id"))
+    @MapKeyColumn(name = "tarefa_id")
+    @Column(name = "ciclo")
+    private Map<String, Integer> ciclosTarefas = new HashMap<>();
 
     // Construtor vazio obrigatório para o JPA
     public Jogador() {}
@@ -46,140 +74,86 @@ public class Jogador {
     public Jogador(String telegramId, String nome) {
         this.telegramId = telegramId;
         this.nome = nome;
-        this.nivelGaragem = 1; // Começa no nível 1
-        this.poderDeMineracaoPorClique = 1; // 1 moeda por clique inicial
-        this.moedasVirtuais = 0;
-        this.satoshisDiariosGanhos = 0;
-        this.ultimaSincronizacao = LocalDateTime.now();
+        this.nivelGaragem = 1;
+        this.poderDeMineracaoPorClique = 1;
         this.rendaPassivaPorSegundo = 0;
-        this.saldoSatoshisAcumulados = 0;
+        this.fracaoMoedasPassivas = 0;
+        this.moedasVirtuais = 0;
         this.satoshisGanhosHoje = 0;
+        this.ultimaSincronizacao = LocalDateTime.now();
+        this.saldoSatoshisAcumulados = 0;
         this.tempoAtivoHojeSegundos = 0;
         this.ultimoDiaJogado = LocalDate.now();
         this.ultimoResfriamento = LocalDateTime.now();
         this.tokensDeSaque = 0;
+        this.satoshisLiberadosHoje = 0;
+        this.satoshisSacadosHoje = 0;
+        this.bonusDobroAte = null;
+        this.segundosPcAtivoDesdeResfriamento = 0;
     }
 
-    public String getTelegramId() {
-        return telegramId;
-    }
+    // Getters e Setters
+    public String getTelegramId() { return telegramId; }
+    public void setTelegramId(String telegramId) { this.telegramId = telegramId; }
 
-    public void setTelegramId(String telegramId) {
-        this.telegramId = telegramId;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    public String getNome() {
-        return nome;
-    }
+    public long getMoedasVirtuais() { return moedasVirtuais; }
+    public void setMoedasVirtuais(long moedasVirtuais) { this.moedasVirtuais = moedasVirtuais; }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    public int getSatoshisGanhosHoje() { return satoshisGanhosHoje; }
+    public void setSatoshisGanhosHoje(int satoshisGanhosHoje) { this.satoshisGanhosHoje = satoshisGanhosHoje; }
 
-    public long getMoedasVirtuais() {
-        return moedasVirtuais;
-    }
+    public int getNivelGaragem() { return nivelGaragem; }
+    public void setNivelGaragem(int nivelGaragem) { this.nivelGaragem = nivelGaragem; }
 
-    public void setMoedasVirtuais(long moedasVirtuais) {
-        this.moedasVirtuais = moedasVirtuais;
-    }
+    public int getPoderDeMineracaoPorClique() { return poderDeMineracaoPorClique; }
+    public void setPoderDeMineracaoPorClique(int poderDeMineracaoPorClique) { this.poderDeMineracaoPorClique = poderDeMineracaoPorClique; }
 
-    public int getSatoshisDiariosGanhos() {
-        return satoshisDiariosGanhos;
-    }
+    public long getRendaPassivaPorSegundo() { return rendaPassivaPorSegundo; }
+    public void setRendaPassivaPorSegundo(long rendaPassivaPorSegundo) { this.rendaPassivaPorSegundo = rendaPassivaPorSegundo; }
 
-    public void setSatoshisDiariosGanhos(int satoshisDiariosGanhos) {
-        this.satoshisDiariosGanhos = satoshisDiariosGanhos;
-    }
+    public double getFracaoMoedasPassivas() { return fracaoMoedasPassivas; }
+    public void setFracaoMoedasPassivas(double fracaoMoedasPassivas) { this.fracaoMoedasPassivas = fracaoMoedasPassivas; }
 
-    public int getNivelGaragem() {
-        return nivelGaragem;
-    }
+    public LocalDateTime getUltimaSincronizacao() { return ultimaSincronizacao; }
+    public void setUltimaSincronizacao(LocalDateTime ultimaSincronizacao) { this.ultimaSincronizacao = ultimaSincronizacao; }
 
-    public void setNivelGaragem(int nivelGaragem) {
-        this.nivelGaragem = nivelGaragem;
-    }
+    public long getSaldoSatoshisAcumulados() { return saldoSatoshisAcumulados; }
+    public void setSaldoSatoshisAcumulados(long saldoSatoshisAcumulados) { this.saldoSatoshisAcumulados = saldoSatoshisAcumulados; }
 
-    public int getPoderDeMineracaoPorClique() {
-        return poderDeMineracaoPorClique;
-    }
+    public long getTempoAtivoHojeSegundos() { return tempoAtivoHojeSegundos; }
+    public void setTempoAtivoHojeSegundos(long tempoAtivoHojeSegundos) { this.tempoAtivoHojeSegundos = tempoAtivoHojeSegundos; }
 
-    public void setPoderDeMineracaoPorClique(int poderDeMineracaoPorClique) {
-        this.poderDeMineracaoPorClique = poderDeMineracaoPorClique;
-    }
+    public LocalDate getUltimoDiaJogado() { return ultimoDiaJogado; }
+    public void setUltimoDiaJogado(LocalDate ultimoDiaJogado) { this.ultimoDiaJogado = ultimoDiaJogado; }
 
-    public LocalDateTime getUltimaSincronizacao() {
-        return ultimaSincronizacao;
-    }
+    public LocalDateTime getUltimoResfriamento() { return ultimoResfriamento; }
+    public void setUltimoResfriamento(LocalDateTime ultimoResfriamento) { this.ultimoResfriamento = ultimoResfriamento; }
+    public long getSegundosPcAtivoDesdeResfriamento() { return segundosPcAtivoDesdeResfriamento; }
+    public void setSegundosPcAtivoDesdeResfriamento(long segundos) { this.segundosPcAtivoDesdeResfriamento = Math.max(0, segundos); }
 
-    public void setUltimaSincronizacao(LocalDateTime ultimaSincronizacao) {
-        this.ultimaSincronizacao = ultimaSincronizacao;
-    }
+    public int getTokensDeSaque() { return tokensDeSaque; }
+    public void setTokensDeSaque(int tokensDeSaque) { this.tokensDeSaque = tokensDeSaque; }
 
-    public long getRendaPassivaPorSegundo() {
-        return rendaPassivaPorSegundo;
-    }
+    public int getSatoshisLiberadosHoje() { return satoshisLiberadosHoje; }
+    public void setSatoshisLiberadosHoje(int valor) { this.satoshisLiberadosHoje = valor; }
 
-    public void setRendaPassivaPorSegundo(long rendaPassivaPorSegundo) {
-        this.rendaPassivaPorSegundo = rendaPassivaPorSegundo;
-    }
+    public int getSatoshisSacadosHoje() { return satoshisSacadosHoje; }
+    public void setSatoshisSacadosHoje(int valor) { this.satoshisSacadosHoje = valor; }
 
-    public int getSaldoSatoshisAcumulados() {
-        return saldoSatoshisAcumulados;
-    }
+    public LocalDateTime getBonusDobroAte() { return bonusDobroAte; }
+    public void setBonusDobroAte(LocalDateTime valor) { this.bonusDobroAte = valor; }
 
-    public void setSaldoSatoshisAcumulados(int saldoSatoshisAcumulados) {
-        this.saldoSatoshisAcumulados = saldoSatoshisAcumulados;
-    }
+    public Map<String, Integer> getNiveisContratados() { return niveisContratados; }
+    public void setNiveisContratados(Map<String, Integer> valor) { this.niveisContratados = valor == null ? new HashMap<>() : valor; }
 
-    public int getSatoshisLiberadosHoje() {
-        return satoshisLiberadosHoje;
-    }
+    public Map<String, Long> getProgressoTarefas() { return progressoTarefas; }
+    public void setProgressoTarefas(Map<String, Long> valor) { this.progressoTarefas = valor == null ? new HashMap<>() : valor; }
 
-    public void setSatoshisLiberadosHoje(int satoshisLiberadosHoje) {
-        this.satoshisLiberadosHoje = satoshisLiberadosHoje;
-    }
-
-    public long getTempoAtivoHojeSegundos() {
-        return tempoAtivoHojeSegundos;
-    }
-
-    public void setTempoAtivoHojeSegundos(long tempoAtivoHojeSegundos) {
-        this.tempoAtivoHojeSegundos = tempoAtivoHojeSegundos;
-    }
-
-    public LocalDate getUltimoDiaJogado() {
-        return ultimoDiaJogado;
-    }
-
-    public void setUltimoDiaJogado(LocalDate ultimoDiaJogado) {
-        this.ultimoDiaJogado = ultimoDiaJogado;
-    }
-
-    public int getSatoshisGanhosHoje() {
-        return satoshisGanhosHoje;
-    }
-
-    public void setSatoshisGanhosHoje(int satoshisGanhosHoje) {
-        this.satoshisGanhosHoje = satoshisGanhosHoje;
-    }
-
-    public LocalDateTime getUltimoResfriamento() {
-        return ultimoResfriamento;
-    }
-
-    public void setUltimoResfriamento(LocalDateTime ultimoResfriamento) {
-        this.ultimoResfriamento = ultimoResfriamento;
-    }
-
-    public int getTokensDeSaque() {
-        return tokensDeSaque;
-    }
-
-    public void setTokensDeSaque(int tokensDeSaque) {
-        this.tokensDeSaque = tokensDeSaque;
-    }
-
-    // Nota: Prima "Alt + Insert" (ou botão direito -> Generate) no IntelliJ
-    // e selecione "Getter and Setter" para gerar os métodos de todas as variáveis acima.
+    public Set<String> getTarefasResgatadas() { return tarefasResgatadas; }
+    public void setTarefasResgatadas(Set<String> valor) { this.tarefasResgatadas = valor == null ? new HashSet<>() : valor; }
+    public Map<String, Integer> getCiclosTarefas() { return ciclosTarefas; }
+    public void setCiclosTarefas(Map<String, Integer> valor) { this.ciclosTarefas = valor == null ? new HashMap<>() : valor; }
 }
