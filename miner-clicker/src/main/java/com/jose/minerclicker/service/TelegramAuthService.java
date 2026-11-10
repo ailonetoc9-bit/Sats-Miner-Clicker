@@ -3,9 +3,9 @@ package com.jose.minerclicker.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -18,17 +18,13 @@ import java.util.TreeMap;
 
 @Service
 public class TelegramAuthService {
-    private final ObjectMapper mapper;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${app.telegram.bot-token:}")
     private String botToken;
 
     @Value("${app.telegram.dev-mode:false}")
     private boolean devMode;
-
-    public TelegramAuthService(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
 
     public Usuario validar(String initData, String idTeste, String nomeTeste) {
         if ((initData == null || initData.isBlank()) && devMode) {
@@ -47,7 +43,7 @@ public class TelegramAuthService {
             }
             String hashRecebido = campos.remove("hash");
             if (hashRecebido == null || !MessageDigest.isEqual(hashRecebido.getBytes(StandardCharsets.UTF_8),
-                    hmacHex(chaveSecreta(), String.join("\n", campos.entrySet().stream()
+                    hmacHex(chaveSecreta(), String.join(Character.toString(10), campos.entrySet().stream()
                             .map(e -> e.getKey() + "=" + e.getValue()).toList())).getBytes(StandardCharsets.UTF_8))) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão do Telegram inválida.");
             }
