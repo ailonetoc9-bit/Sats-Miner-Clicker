@@ -4,6 +4,7 @@ import com.jose.minerclicker.model.GameState;
 import com.jose.minerclicker.model.Jogador;
 import com.jose.minerclicker.repository.JogadorRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+    @Transactional
 public class JogadorService {
 
     private final JogadorRepository repository;
