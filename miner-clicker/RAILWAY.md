@@ -29,7 +29,7 @@ Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e o usuá
 
 ## Antes de oferecer recompensas reais
 
-O jogo usa o formato Rewarded Interstitial do Monetag para os três botões de anúncio. A recompensa só é aplicada depois que o backend recebe a confirmação `valued` do postback e valida uma sessão única; o retorno visual do navegador não concede o prêmio por conta própria. O saque continua fictício e o saldo atual não é convertido automaticamente em pagamentos.
+Os três botões de recompensa usam o formato Rewarded Interstitial do Monetag. A recompensa só é aplicada depois que o backend recebe a confirmação `valued` do postback e valida uma sessão única; o retorno visual do navegador não concede o prêmio por conta própria. O jogo também agenda um In-App Interstitial automático a cada 5 minutos, com limite de 12 por hora, apenas no Telegram Mini App. Esse formato não libera moedas, sats ou tokens. O saque continua fictício e o saldo atual não é convertido automaticamente em pagamentos.
 
 ### Ativar anúncios reais no Monetag
 
