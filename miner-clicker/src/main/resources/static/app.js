@@ -17,6 +17,7 @@ let anunciosHabilitados = false;
 let anuncioEmAndamento = false;
 let zonaMonetag = "";
 let interstitialAutomaticoConfigurado = false;
+let erroInicializacaoAnuncios = null;
 
 const INTERVALO_INTERSTITIAL_SEGUNDOS = 5 * 60;
 const MAX_INTERSTITIALS_POR_HORA = 12;
@@ -93,26 +94,46 @@ async function prepararAnuncios() {
     if (!anunciosHabilitados) return;
     monetagReady = new Promise((resolve, reject) => {
       const script = document.createElement("script");
+      const timeoutInicializacao = setTimeout(() => reject(new Error("O provedor demorou para responder.")), 15000);
       script.src = config.sdkUrl;
       script.dataset.zone = zonaMonetag;
       script.dataset.sdk = `show_${zonaMonetag}`;
       script.async = true;
       script.onload = () => {
+        clearTimeout(timeoutInicializacao);
         if (typeof window[`show_${zonaMonetag}`] !== "function") {
           reject(new Error("O provedor de anúncios não inicializou. Verifique se o navegador está bloqueando o SDK e tente novamente."));
           return;
         }
         resolve();
       };
-      script.onerror = () => reject(new Error("O navegador não conseguiu carregar o provedor de anúncios. Verifique o bloqueador de conteúdo e tente novamente."));
+      script.onerror = () => {
+        clearTimeout(timeoutInicializacao);
+        reject(new Error("O navegador não conseguiu carregar o provedor de anúncios."));
+      };
       document.head.appendChild(script);
     });
     await monetagReady;
     configurarInterstitialAutomatico();
   } catch (erro) {
     anunciosHabilitados = false;
+    erroInicializacaoAnuncios = erro;
     console.warn("Anúncios ainda não disponíveis:", erro);
   }
+}
+
+function mensagemFalhaAnuncio(erro) {
+  const mensagem = String(erro?.message || erro || "");
+  if (/empty feed|ad is not ready|sem anúncio|no ad/i.test(mensagem)) {
+    return "Não há anúncio disponível agora. Tente novamente mais tarde.";
+  }
+  if (/timeout|demorou para responder/i.test(mensagem)) {
+    return "O anúncio demorou para carregar. Confira a conexão e tente novamente.";
+  }
+  if (/network|failed to fetch|conexão|carregar o provedor/i.test(mensagem)) {
+    return "Não foi possível carregar o anúncio. Confira a conexão e tente novamente.";
+  }
+  return mensagem || "O anúncio não está disponível agora. Tente novamente mais tarde.";
 }
 
 function configurarInterstitialAutomatico() {
@@ -144,7 +165,7 @@ function configurarInterstitialAutomatico() {
 async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
   if (anuncioEmAndamento) return;
   if (!anunciosHabilitados || !monetagReady) {
-    mostrarToast("Os anúncios ainda estão sendo configurados.");
+    mostrarToast(erroInicializacaoAnuncios ? mensagemFalhaAnuncio(erroInicializacaoAnuncios) : "Os anúncios estão indisponíveis agora. Tente novamente em instantes.");
     return;
   }
   const botao = $(botaoId);
@@ -162,9 +183,9 @@ async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
 
     let resultadoSdk;
     try {
-      resultadoSdk = await mostrar({ ymid: sessao.sessionId, requestVar: posicionamento });
+      resultadoSdk = await mostrar({ type: "end", ymid: sessao.sessionId, requestVar: posicionamento, timeout: 20 });
     } catch (erroSdk) {
-      throw new Error(`Monetag: ${erroSdk?.message || "não foi possível abrir o anúncio."}`);
+      throw new Error(mensagemFalhaAnuncio(erroSdk));
     }
     if (resultadoSdk?.reward_event_type !== "valued") {
       mostrarToast("O anúncio não gerou uma visualização válida. Nenhum prêmio foi liberado.");
@@ -189,7 +210,7 @@ async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
     mostrarToast("Anúncio confirmado. O servidor ainda está validando o prêmio; aguarde alguns instantes.");
   } catch (erro) {
     console.warn("Falha ao assistir anúncio:", erro);
-    mostrarToast(erro.message || "O anúncio não está disponível agora.");
+    mostrarToast(mensagemFalhaAnuncio(erro));
   } finally {
     anuncioEmAndamento = false;
     if (botao) {
