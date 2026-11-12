@@ -44,7 +44,7 @@ async function requisitar(caminho, params = {}) {
   const headers = TELEGRAM_INIT_DATA ? { "X-Telegram-Init-Data": TELEGRAM_INIT_DATA } : {};
   const resposta = await fetch(`${API_BASE}${caminho}?${query}`, { method: "POST", headers });
   const dados = await resposta.json().catch(() => ({}));
-  if (!resposta.ok) throw new Error(dados.message || dados.error || "Não foi possível concluir. Tente novamente.");
+  if (!resposta.ok) throw new Error(dados.message || dados.error || dados.detail || "Não foi possível concluir. Tente novamente.");
   return dados;
 }
 
@@ -131,7 +131,7 @@ async function sacarSatoshis(valor) {
   catch (erro) { mostrarToast(erro.message || "Confira os sats liberados e seu token de saque."); }
 }
 
-function renderizarContratados(contratados = []) {
+function renderizarContratados(contratados = []) { const chaveRenderizacao = JSON.stringify(contratados); if (chaveRenderizacao === window.__contractorsRenderKey) return; window.__contractorsRenderKey = chaveRenderizacao;
   if (!Array.isArray(contratados) || contratados.length === 0) {
     $("contractor-list").innerHTML = "<p class='empty-state'>A equipe não carregou. Confirme a conexão e reinicie o backend atualizado.</p>";
     return;
