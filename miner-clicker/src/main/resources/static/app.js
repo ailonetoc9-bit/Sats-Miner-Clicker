@@ -377,7 +377,7 @@ function renderizarSaldoPrevisto() {
 
 function chaveTutorial() {
   const usuarioId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "visitante";
-  return `miner-club-tutorial-v2-${usuarioId}`;
+  return `miner-club-tutorial-v3-${usuarioId}`;
 }
 
 function tutorialJaVisto() {
