@@ -55,7 +55,7 @@ async function requisitar(caminho, params = {}) {
     if (resposta.status === 401 && /expirad/i.test(mensagem || "")) {
       throw new Error("Sessão do Telegram expirada. Feche e abra o jogo novamente.");
     }
-    throw new Error(mensagem || "Não foi possível concluir. Tente novamente.");
+    throw new Error(`Servidor do jogo (HTTP ${resposta.status}): ${mensagem || "não foi possível concluir."}`);
   }
   return dados;
 }
@@ -64,7 +64,7 @@ async function requisitarLeitura(caminho) {
   const headers = TELEGRAM_INIT_DATA ? { "X-Telegram-Init-Data": TELEGRAM_INIT_DATA } : {};
   const resposta = await fetch(`${API_BASE}${caminho}`, { headers });
   const dados = await resposta.json().catch(() => ({}));
-  if (!resposta.ok) throw new Error(dados.message || "Não foi possível consultar o servidor.");
+  if (!resposta.ok) throw new Error(`Servidor do jogo (HTTP ${resposta.status}): ${dados.message || "não foi possível consultar."}`);
   return dados;
 }
 
@@ -116,7 +116,12 @@ async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
     const mostrar = window[`show_${zonaMonetag}`];
     if (typeof mostrar !== "function") throw new Error("O SDK de anúncios não foi carregado.");
 
-    const resultadoSdk = await mostrar({ ymid: sessao.sessionId, requestVar: posicionamento });
+    let resultadoSdk;
+    try {
+      resultadoSdk = await mostrar({ ymid: sessao.sessionId, requestVar: posicionamento });
+    } catch (erroSdk) {
+      throw new Error(`Monetag: ${erroSdk?.message || "não foi possível abrir o anúncio."}`);
+    }
     if (resultadoSdk?.reward_event_type !== "valued") {
       mostrarToast("O anúncio não gerou uma visualização válida. Nenhum prêmio foi liberado.");
       return;
