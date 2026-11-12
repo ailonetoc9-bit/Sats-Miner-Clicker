@@ -31,22 +31,23 @@ footer{font-size:9px}
 /* Tutorial de primeira visita */
 .tutorial-help{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:#596653;font-size:12px;font-weight:700;padding:7px 8px;cursor:pointer}
 .tutorial-help span{width:23px;height:23px;display:grid;place-items:center;border:2px solid #89937e;border-radius:50%;font-size:14px;font-weight:800}
-.tutorial-overlay{position:fixed;inset:0;z-index:1002;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px max(16px,env(safe-area-inset-bottom));pointer-events:none}
+.tutorial-overlay{position:fixed;inset:0;z-index:1002;display:flex;align-items:flex-end;justify-content:center;padding:12px 12px max(12px,env(safe-area-inset-bottom));pointer-events:auto;background:transparent}
 .tutorial-overlay.hidden{display:none}
-.tutorial-overlay.tutorial-top{align-items:flex-start;padding-top:max(16px,env(safe-area-inset-top))}
-.tutorial-dialog{width:min(430px,100%);max-height:82vh;overflow:auto;pointer-events:auto;background:#fffdf5;border:1px solid #e9dfc7;border-radius:20px;padding:18px;box-shadow:0 16px 50px #17221c44;color:var(--ink)}
+.tutorial-overlay.tutorial-top{align-items:flex-start;padding-top:max(12px,env(safe-area-inset-top))}
+.tutorial-dialog{width:min(330px,calc(100vw - 32px));min-height:300px;max-height:min(430px,72vh);overflow:auto;display:flex;flex-direction:column;pointer-events:auto;background:linear-gradient(155deg,#fffef9 0%,#fff9e9 100%);border:1px solid #e9dfc7;border-radius:22px;padding:19px;box-shadow:0 12px 34px #26332630;color:var(--ink)}
 .tutorial-topline{display:flex;justify-content:space-between;align-items:center;color:#9b8755;font-size:11px;font-weight:800;letter-spacing:.1em}
-.tutorial-topline button{border:0;background:transparent;color:#737969;font-size:13px;font-weight:700;padding:6px;cursor:pointer}
-.tutorial-progress{height:5px;overflow:hidden;margin:7px 0 16px;background:#eee9da;border-radius:9px}
-.tutorial-progress i{display:block;width:0;height:100%;background:#77a27a;border-radius:inherit;transition:width .2s ease}
-.tutorial-eyebrow{margin:0 0 4px;color:#a38e5f;font-size:11px;font-weight:800;letter-spacing:.12em}
-.tutorial-dialog h2{margin:0;font:600 22px Fredoka;line-height:1.2}
-.tutorial-text{margin:9px 0 17px;color:#697267;font-size:15px;line-height:1.55}
+.tutorial-topline button{border:0;background:#f0ead8;color:#687064;font-size:12px;font-weight:700;padding:6px 10px;border-radius:9px;cursor:pointer}
+.tutorial-progress{height:6px;flex:0 0 6px;overflow:hidden;margin:11px 0 18px;background:#eee9da;border-radius:9px}
+.tutorial-progress i{display:block;width:0;height:100%;background:linear-gradient(90deg,#8bb48a,#4b805b);border-radius:inherit;transition:width .2s ease}
+.tutorial-eyebrow{margin:0 0 6px;color:#a38e5f;font-size:10px;font-weight:800;letter-spacing:.14em}
+.tutorial-dialog h2{margin:0;font:600 21px Fredoka;line-height:1.2}
+.tutorial-text{margin:10px 0 4px;color:#697267;font-size:14px;line-height:1.5}
 .tutorial-actions{display:flex;justify-content:space-between;gap:10px}
-.tutorial-actions button{min-height:42px;border:0;border-radius:11px;padding:9px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.tutorial-actions{margin-top:auto;padding-top:14px}
+.tutorial-actions button{min-height:42px;border:0;border-radius:11px;padding:9px 15px;font-size:13px;font-weight:800;cursor:pointer}
 .tutorial-back{background:#eee9da;color:#687064}
 .tutorial-back:disabled{opacity:.4;cursor:default}
 .tutorial-next{margin-left:auto;background:#397454;color:white}
-#game-container.tutorial-active{z-index:1001;pointer-events:none}
+#game-container.tutorial-active{pointer-events:none}
 .tutorial-target{position:relative;outline:3px solid #f5c956!important;outline-offset:3px;box-shadow:0 0 0 7px #f5c95655!important;border-radius:14px!important}
-@media(max-height:620px){.tutorial-overlay{padding-top:8px;padding-bottom:8px}.tutorial-dialog{max-height:90vh;padding:14px}.tutorial-progress{margin-bottom:10px}.tutorial-text{font-size:14px;margin:7px 0 10px}}
+@media(max-height:620px){.tutorial-overlay{padding-top:8px;padding-bottom:8px}.tutorial-dialog{min-height:0;max-height:76vh;padding:15px}.tutorial-progress{margin-bottom:10px}.tutorial-text{font-size:13px;margin:7px 0 0}}
