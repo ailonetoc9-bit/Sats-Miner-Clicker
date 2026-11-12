@@ -377,7 +377,7 @@ function renderizarSaldoPrevisto() {
 
 function chaveTutorial() {
   const usuarioId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "visitante";
-  return `miner-club-tutorial-v1-${usuarioId}`;
+  return `miner-club-tutorial-v2-${usuarioId}`;
 }
 
 function tutorialJaVisto() {
@@ -406,11 +406,18 @@ function atualizarPassoTutorial() {
   $("tutorialText").textContent = passo.texto;
   $("tutorialBack").disabled = passoTutorialAtual === 0;
   $("tutorialNext").textContent = passoTutorialAtual === PASSOS_TUTORIAL.length - 1 ? "Começar a jogar" : "Continuar";
-  overlay.classList.toggle("tutorial-top", passo.posicao === "topo");
   const alvos = Array.isArray(passo.alvo) ? passo.alvo : (passo.alvo ? [passo.alvo] : []);
   alvos.forEach((seletor) => document.querySelector(seletor)?.classList.add("tutorial-target"));
   const primeiroAlvo = alvos.length ? document.querySelector(alvos[0]) : null;
-  if (primeiroAlvo) primeiroAlvo.scrollIntoView({ behavior: "smooth", block: "center" });
+  overlay.classList.toggle("tutorial-top", passo.posicao === "topo");
+  if (primeiroAlvo) {
+    primeiroAlvo.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    requestAnimationFrame(() => {
+      const centroAlvo = primeiroAlvo.getBoundingClientRect().top + primeiroAlvo.getBoundingClientRect().height / 2;
+      const mostrarNoTopo = passo.posicao === "topo" || (passo.posicao !== "baixo" && centroAlvo > window.innerHeight / 2);
+      overlay.classList.toggle("tutorial-top", mostrarNoTopo);
+    });
+  }
 }
 
 function abrirTutorial(indice = 0) {
