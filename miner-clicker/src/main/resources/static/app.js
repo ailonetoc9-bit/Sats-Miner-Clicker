@@ -17,11 +17,9 @@ let anunciosHabilitados = false;
 let anuncioEmAndamento = false;
 let zonaMonetag = "";
 
-
 const $ = (id) => document.getElementById(id);
 const elMoedas = $("moedas");
 const palco = $("palco-jogo");
-
 
 function mostrarToast(mensagem) {
   const toast = $("toast");
@@ -30,7 +28,6 @@ function mostrarToast(mensagem) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
 }
-
 
 function formatar(valor) {
   const numero = Math.max(0, Number(valor || 0));
@@ -42,7 +39,6 @@ function formatar(valor) {
   const valorCompacto = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(compacto);
   return `${valorCompacto}${sufixos[grupo] || `e${grupo * 3}`}`;
 }
-
 
 async function requisitar(caminho, params = {}) {
   const parametros = { ...params };
@@ -64,7 +60,6 @@ async function requisitar(caminho, params = {}) {
   return dados;
 }
 
-
 async function requisitarLeitura(caminho) {
   const headers = TELEGRAM_INIT_DATA ? { "X-Telegram-Init-Data": TELEGRAM_INIT_DATA } : {};
   const resposta = await fetch(`${API_BASE}${caminho}`, { headers });
@@ -72,7 +67,6 @@ async function requisitarLeitura(caminho) {
   if (!resposta.ok) throw new Error(dados.message || "Não foi possível consultar o servidor.");
   return dados;
 }
-
 
 async function prepararAnuncios() {
   try {
@@ -103,7 +97,6 @@ async function prepararAnuncios() {
   }
 }
 
-
 async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
   if (anuncioEmAndamento) return;
   if (!anunciosHabilitados || !monetagReady) {
@@ -123,13 +116,11 @@ async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
     const mostrar = window[`show_${zonaMonetag}`];
     if (typeof mostrar !== "function") throw new Error("O SDK de anúncios não foi carregado.");
 
-
     const resultadoSdk = await mostrar({ ymid: sessao.sessionId, requestVar: posicionamento });
     if (resultadoSdk?.reward_event_type !== "valued") {
       mostrarToast("O anúncio não gerou uma visualização válida. Nenhum prêmio foi liberado.");
       return;
     }
-
 
     // A resposta do navegador serve para a interface; a recompensa só vale após o postback do Monetag.
     mostrarToast("Anúncio confirmado. Validando o prêmio...");
@@ -149,6 +140,125 @@ async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
     mostrarToast("Anúncio confirmado. O servidor ainda está validando o prêmio; aguarde alguns instantes.");
   } catch (erro) {
     console.warn("Falha ao assistir anúncio:", erro);
+    mostrarToast(erro.message || "O anúncio não está disponível agora.");
+  } finally {
+    anuncioEmAndamento = false;
+    if (botao) {
+      botao.disabled = false;
+      botao.textContent = botao.dataset.textoOriginal || botao.textContent;
+    }
+  }
+}
+
+async function iniciarJogo() {
+  window.Telegram?.WebApp?.ready();
+  window.Telegram?.WebApp?.expand();
+  try {
+    atualizarEcra(await requisitar("/login", { telegramId: TELEGRAM_ID, nome: NOME }));
+    $("statusMessage").textContent = "Garagem conectada · progresso sincronizado";
+    prepararAnuncios();
+  } catch (erro) {
+    $("statusMessage").textContent = erro.message || "Não foi possível conectar ao jogo.";
+    console.error("Erro ao ligar ao servidor:", erro);
+  }
+}
+
+function clicarPC(evento) {
+  cliquesAcumulados++;
+  const poder = Number(jogadorAtual?.poderDeMineracaoPorClique || 1);
+  const ganho = poder * (jogadorAtual?.bonusDobroAtivo ? 2 : 1);
+  renderizarSaldoPrevisto();
+  const bounds = palco.getBoundingClientRect();
+  const fx = document.createElement("span");
+  fx.className = "float-coin";
+  fx.textContent = `+${formatar(ganho)} 🟡`;
+  fx.style.left = `${Math.max(14, Math.min((evento?.clientX || bounds.left + bounds.width / 2) - bounds.left, bounds.width - 60))}px`;
+  fx.style.top = `${Math.max(16, (evento?.clientY || bounds.top + bounds.height / 2) - bounds.top)}px`;
+  $("floating-layer").appendChild(fx);
+  setTimeout(() => fx.remove(), 850);
+}
+
+async function sincronizarComServidor() {
+  while (sincronizando) await new Promise((resolve) => setTimeout(resolve, 25));
+  if (!jogadorAtual) return;
+  sincronizando = true;
+  const cliquesParaEnviar = cliquesAcumulados;
+  cliquesAcumulados = 0;
+  cliquesEmEnvio = cliquesParaEnviar;
+  try {
+    const dados = await requisitar("/sync", { telegramId: TELEGRAM_ID, cliques: cliquesParaEnviar });
+    cliquesEmEnvio = 0;
+    atualizarEcra(dados);
+  } catch (erro) {
+    cliquesEmEnvio = 0;
+    cliquesAcumulados += cliquesParaEnviar;
+    console.warn("Erro ao sincronizar:", erro);
+    renderizarSaldoPrevisto();
+  } finally { sincronizando = false; }
+}
+
+async function comprarUpgrade() {
+  try { await sincronizarComServidor(); atualizarEcra(await requisitar("/comprar", { telegramId: TELEGRAM_ID })); mostrarToast("Upgrade de setup comprado!"); }
+  catch (erro) { await sincronizarComServidor(); mostrarToast(erro.message || "Moedas insuficientes para esse upgrade."); }
+}
+
+async function comprarContratado(id) {
+  try { await sincronizarComServidor(); atualizarEcra(await requisitar("/contratados/comprar", { telegramId: TELEGRAM_ID, contratadoId: id })); mostrarToast("Novo nível de contratado comprado!"); }
+  catch (erro) { await sincronizarComServidor(); mostrarToast(erro.message); }
+}
+
+async function resgatarTarefa(id) {
+  try { atualizarEcra(await requisitar("/tarefas/resgatar", { telegramId: TELEGRAM_ID, tarefaId: id })); mostrarToast("Satoshis adicionados ao seu saldo!"); }
+  catch (erro) { mostrarToast(erro.message); }
+}
+
+async function verAnuncioDobrar() {
+  return assistirAnuncio("dobrar", "boost_x2", "botaoAnuncioDobrar", "Dobro de ganhos ativado por 10 minutos!");
+}
+
+async function verAnuncioResfriar() {
+  return assistirAnuncio("resfriar", "cool_pc", "botaoAnuncioResfriar", "Anúncio assistido, prêmio resgatado. PC resfriado!");
+}
+
+async function verAnuncioSaque() {
+  return assistirAnuncio("saque", "withdrawal_token", "botaoAnuncioSaque", "Anúncio assistido, prêmio resgatado. Token de saque liberado!");
+}
+
+async function sacarSatoshis(valor) {
+  const quantia = Number(valor ?? $("valorSaque").value);
+  if (!Number.isInteger(quantia) || quantia < 1) return mostrarToast("Informe uma quantidade válida de sats.");
+  try { atualizarEcra(await requisitar("/sacar", { telegramId: TELEGRAM_ID, valorSatoshis: quantia })); mostrarToast(`${quantia} sats retirados (saque fictício).`); }
+  catch (erro) { mostrarToast(erro.message || "Confira os sats liberados e seu token de saque."); }
+}
+
+function renderizarContratados(contratados = []) {
+  const chaveRenderizacao = JSON.stringify(contratados);
+  if (chaveRenderizacao === contractorsRenderKey) return;
+  contractorsRenderKey = chaveRenderizacao;
+  if (!Array.isArray(contratados) || contratados.length === 0) {
+    $("contractor-list").innerHTML = "<p class='empty-state'>A equipe não carregou. Confirme a conexão e reinicie o backend atualizado.</p>";
+    return;
+  }
+  $("contractor-list").innerHTML = contratados.map((item) => {
+    const marco = item.proximoMarco ? `Próximo dobro no nível ${item.proximoMarco}` : "Todos os marcos iniciais alcançados";
+    return `<article class="contractor-card"><span class="contractor-art">👩‍💻</span><div class="contractor-copy"><strong>${item.nome}</strong><small>Nível ${item.nivel} · +${formatar(item.rendaProximoNivel)} moedas/s no próximo nível</small><em>${marco}</em></div><button type="button" class="hire-button" onclick="comprarContratado('${item.id}')">🟡 ${formatar(item.custo)}<small>COMPRAR NÍVEL</small></button></article>`;
+  }).join("");
+}
+
+function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)=>!item.resgatada); const chave = itemAtual ? JSON.stringify([itemAtual.id,itemAtual.nome,itemAtual.descricao,itemAtual.recompensaSatoshis,itemAtual.objetivo,itemAtual.pronta]) : (tarefas.length ? "complete" : "empty"); if (chave === window.__taskRenderKey) { if (itemAtual) { const progresso = `${formatar(itemAtual.progresso)} / ${formatar(itemAtual.objetivo)}`; const texto = $("task-list").querySelector(".task-bottom > span:first-child"); if (texto) texto.textContent = progresso; const barra = $("task-list").querySelector(".task-track i"); if (barra) barra.style.width = `${Math.min(100,(itemAtual.progresso/itemAtual.objetivo)*100)}%`; } return; } window.__taskRenderKey = chave;
+  if (!Array.isArray(tarefas) || tarefas.length === 0) {
+    if (taskRenderKey !== "empty") {
+      $("task-list").innerHTML = "<p class='empty-state'>As tarefas não carregaram. Reinicie o backend atualizado.</p>";
+      taskRenderKey = "empty";
+    }
+    return;
+  }
+  const atual = tarefas.find((item) => !item.resgatada);
+  if (!atual) {
+    if (taskRenderKey !== "complete") {
+      $("task-list").innerHTML = "<p class='empty-state'>Você concluiu todas as tarefas de hoje. Novas tarefas chegam amanhã.</p>";
+      taskRenderKey = "complete";
+    }
     return;
   }
   const tarefa = atual;
@@ -168,7 +278,6 @@ async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
   const percentual = Math.min(100, (tarefa.progresso / tarefa.objetivo) * 100);
   $("task-list").querySelector(".task-track i").style.width = `${percentual}%`;
 }
-
 
 function atualizarEcra(dados) {
   jogadorAtual = dados;
@@ -201,12 +310,10 @@ function atualizarEcra(dados) {
   renderizarTarefas(dados.tarefas);
 }
 
-
 function mostrarMoedas(valor) {
   elMoedas.dataset.raw = String(valor);
   elMoedas.textContent = formatar(valor);
 }
-
 
 function renderizarSaldoPrevisto() {
   const poder = Number(jogadorAtual?.poderDeMineracaoPorClique || 1);
@@ -217,7 +324,6 @@ function renderizarSaldoPrevisto() {
   const moedasPassivasPrevistas = segundosDesdeConfirmacao * Number(jogadorAtual?.rendaPassivaPorSegundo || 0) * calor * multiplicador;
   mostrarMoedas(moedasServidor + cliquesPendentes * poder * multiplicador + moedasPassivasPrevistas);
 }
-
 
 palco.addEventListener("click", clicarPC);
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
