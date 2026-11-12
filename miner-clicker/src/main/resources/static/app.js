@@ -16,6 +16,10 @@ let monetagReady = null;
 let anunciosHabilitados = false;
 let anuncioEmAndamento = false;
 let zonaMonetag = "";
+let interstitialAutomaticoConfigurado = false;
+
+const INTERVALO_INTERSTITIAL_SEGUNDOS = 5 * 60;
+const MAX_INTERSTITIALS_POR_HORA = 12;
 
 const $ = (id) => document.getElementById(id);
 const elMoedas = $("moedas");
@@ -91,9 +95,36 @@ async function prepararAnuncios() {
       document.head.appendChild(script);
     });
     await monetagReady;
+    configurarInterstitialAutomatico();
   } catch (erro) {
     anunciosHabilitados = false;
     console.warn("Anúncios ainda não disponíveis:", erro);
+  }
+}
+
+function configurarInterstitialAutomatico() {
+  if (interstitialAutomaticoConfigurado || !TELEGRAM_INIT_DATA || !anunciosHabilitados) return;
+  const mostrar = window[`show_${zonaMonetag}`];
+  if (typeof mostrar !== "function") return;
+
+  interstitialAutomaticoConfigurado = true;
+  try {
+    Promise.resolve(mostrar({
+      type: "inApp",
+      inAppSettings: {
+        frequency: MAX_INTERSTITIALS_POR_HORA,
+        capping: 1,
+        interval: INTERVALO_INTERSTITIAL_SEGUNDOS,
+        timeout: INTERVALO_INTERSTITIAL_SEGUNDOS,
+        everyPage: false
+      }
+    })).catch((erro) => {
+      interstitialAutomaticoConfigurado = false;
+      console.warn("Interstitial automático da Monetag não foi configurado:", erro);
+    });
+  } catch (erro) {
+    interstitialAutomaticoConfigurado = false;
+    console.warn("Interstitial automático da Monetag não foi configurado:", erro);
   }
 }
 
