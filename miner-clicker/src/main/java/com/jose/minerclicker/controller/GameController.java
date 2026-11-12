@@ -2,6 +2,7 @@ package com.jose.minerclicker.controller;
 
 import com.jose.minerclicker.model.GameState;
 import com.jose.minerclicker.service.JogadorService;
+import com.jose.minerclicker.service.RewardedAdService;
 import com.jose.minerclicker.service.TelegramAuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +13,12 @@ import org.springframework.web.bind.annotation.*;
 public class GameController {
     private final JogadorService jogadorService;
     private final TelegramAuthService telegramAuth;
+    private final RewardedAdService rewardedAdService;
 
-    public GameController(JogadorService jogadorService, TelegramAuthService telegramAuth) {
+    public GameController(JogadorService jogadorService, TelegramAuthService telegramAuth, RewardedAdService rewardedAdService) {
         this.jogadorService = jogadorService;
         this.telegramAuth = telegramAuth;
+        this.rewardedAdService = rewardedAdService;
     }
 
     private TelegramAuthService.Usuario usuario(String initData, String idTeste, String nomeTeste) {
@@ -53,22 +56,34 @@ public class GameController {
         return ResponseEntity.ok(jogadorService.resgatarTarefa(usuario(initData, telegramId, null).id(), tarefaId));
     }
 
-    @PostMapping("/ads/dobrar")
-    public ResponseEntity<GameState> dobrarGanhos(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
-            @RequestParam(required = false) String telegramId) {
-        return ResponseEntity.ok(jogadorService.dobrarGanhos(usuario(initData, telegramId, null).id()));
+    @GetMapping("/ads/config")
+    public ResponseEntity<RewardedAdService.AdConfig> configuracaoAnuncios() {
+        return ResponseEntity.ok(rewardedAdService.configuracao());
     }
 
-    @PostMapping("/ads/resfriar")
-    public ResponseEntity<GameState> resfriarPC(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
-            @RequestParam(required = false) String telegramId) {
-        return ResponseEntity.ok(jogadorService.resfriarPC(usuario(initData, telegramId, null).id()));
+    @PostMapping("/ads/sessao")
+    public ResponseEntity<RewardedAdService.AdSessionView> criarSessaoAnuncio(
+            @RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @RequestParam String tipo) {
+        return ResponseEntity.ok(rewardedAdService.criarSessao(usuario(initData, telegramId, null).id(), tipo));
     }
 
-    @PostMapping("/ads/token-saque")
-    public ResponseEntity<GameState> gerarToken(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
-            @RequestParam(required = false) String telegramId) {
-        return ResponseEntity.ok(jogadorService.ganharTokenSaque(usuario(initData, telegramId, null).id()));
+    @GetMapping("/ads/sessao/{id}")
+    public ResponseEntity<RewardedAdService.AdSessionStatus> consultarSessaoAnuncio(
+            @RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId, @PathVariable String id) {
+        return ResponseEntity.ok(rewardedAdService.consultarSessao(usuario(initData, telegramId, null).id(), id));
+    }
+
+    @GetMapping("/ads/postback")
+    public ResponseEntity<Void> receberPostbackAnuncio(
+            @RequestParam(required = false) String secret,
+            @RequestParam(required = false) String ymid,
+            @RequestParam(required = false, name = "event_type") String eventType,
+            @RequestParam(required = false, name = "reward_event_type") String rewardEventType,
+            @RequestParam(required = false, name = "zone_id") String zoneId) {
+        rewardedAdService.processarPostback(secret, ymid, eventType, rewardEventType, zoneId);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/sacar")

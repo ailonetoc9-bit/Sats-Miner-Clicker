@@ -10,6 +10,12 @@ let ultimaConfirmacaoMs = Date.now();
 let sincronizando = false;
 let toastTimer;
 let jogadorAtual = null;
+let contractorsRenderKey = null;
+let taskRenderKey = null;
+let monetagReady = null;
+let anunciosHabilitados = false;
+let anuncioEmAndamento = false;
+let zonaMonetag = "";
 
 const $ = (id) => document.getElementById(id);
 const elMoedas = $("moedas");
@@ -44,8 +50,98 @@ async function requisitar(caminho, params = {}) {
   const headers = TELEGRAM_INIT_DATA ? { "X-Telegram-Init-Data": TELEGRAM_INIT_DATA } : {};
   const resposta = await fetch(`${API_BASE}${caminho}?${query}`, { method: "POST", headers });
   const dados = await resposta.json().catch(() => ({}));
-  if (!resposta.ok) throw new Error(dados.message || dados.error || dados.detail || "Não foi possível concluir. Tente novamente.");
+  if (!resposta.ok) {
+    const mensagem = dados.message || dados.error || dados.detail;
+    if (resposta.status === 401 && /expirad/i.test(mensagem || "")) {
+      throw new Error("Sessão do Telegram expirada. Feche e abra o jogo novamente.");
+    }
+    throw new Error(mensagem || "Não foi possível concluir. Tente novamente.");
+  }
   return dados;
+}
+
+async function requisitarLeitura(caminho) {
+  const headers = TELEGRAM_INIT_DATA ? { "X-Telegram-Init-Data": TELEGRAM_INIT_DATA } : {};
+  const resposta = await fetch(`${API_BASE}${caminho}`, { headers });
+  const dados = await resposta.json().catch(() => ({}));
+  if (!resposta.ok) throw new Error(dados.message || "Não foi possível consultar o servidor.");
+  return dados;
+}
+
+async function prepararAnuncios() {
+  try {
+    const config = await requisitarLeitura("/ads/config");
+    anunciosHabilitados = Boolean(config.enabled);
+    zonaMonetag = String(config.zoneId || "");
+    if (!anunciosHabilitados) return;
+    monetagReady = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = config.sdkUrl;
+      script.dataset.zone = zonaMonetag;
+      script.dataset.sdk = `show_${zonaMonetag}`;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Não foi possível carregar os anúncios."));
+      document.head.appendChild(script);
+    });
+    await monetagReady;
+  } catch (erro) {
+    anunciosHabilitados = false;
+    console.warn("Anúncios ainda não disponíveis:", erro);
+  }
+}
+
+async function assistirAnuncio(tipo, posicionamento, botaoId, mensagemSucesso) {
+  if (anuncioEmAndamento) return;
+  if (!anunciosHabilitados || !monetagReady) {
+    mostrarToast("Os anúncios ainda estão sendo configurados.");
+    return;
+  }
+  const botao = $(botaoId);
+  anuncioEmAndamento = true;
+  if (botao) {
+    botao.disabled = true;
+    botao.dataset.textoOriginal = botao.textContent;
+    botao.textContent = "AGUARDE";
+  }
+  try {
+    await monetagReady;
+    const sessao = await requisitar("/ads/sessao", { telegramId: TELEGRAM_ID, tipo });
+    const mostrar = window[`show_${zonaMonetag}`];
+    if (typeof mostrar !== "function") throw new Error("O SDK de anúncios não foi carregado.");
+
+    const resultadoSdk = await mostrar({ ymid: sessao.sessionId, requestVar: posicionamento });
+    if (resultadoSdk?.reward_event_type !== "valued") {
+      mostrarToast("O anúncio não gerou uma visualização válida. Nenhum prêmio foi liberado.");
+      return;
+    }
+
+    // A resposta do navegador serve para a interface; a recompensa só vale após o postback do Monetag.
+    mostrarToast("Anúncio confirmado. Validando o prêmio...");
+    for (let tentativa = 0; tentativa < 30; tentativa++) {
+      const estado = await requisitarLeitura(`/ads/sessao/${encodeURIComponent(sessao.sessionId)}`);
+      if (estado.status === "REWARDED") {
+        atualizarEcra(await requisitar("/login", { telegramId: TELEGRAM_ID, nome: NOME }));
+        mostrarToast(mensagemSucesso);
+        return;
+      }
+      if (estado.status === "NON_VALUED" || estado.status === "EXPIRED") {
+        mostrarToast("O anúncio não gerou uma recompensa válida.");
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    mostrarToast("Anúncio confirmado. O servidor ainda está validando o prêmio; aguarde alguns instantes.");
+  } catch (erro) {
+    console.warn("Falha ao assistir anúncio:", erro);
+    mostrarToast(erro.message || "O anúncio não está disponível agora.");
+  } finally {
+    anuncioEmAndamento = false;
+    if (botao) {
+      botao.disabled = false;
+      botao.textContent = botao.dataset.textoOriginal || botao.textContent;
+    }
+  }
 }
 
 async function iniciarJogo() {
@@ -54,6 +150,7 @@ async function iniciarJogo() {
   try {
     atualizarEcra(await requisitar("/login", { telegramId: TELEGRAM_ID, nome: NOME }));
     $("statusMessage").textContent = "Garagem conectada · progresso sincronizado";
+    prepararAnuncios();
   } catch (erro) {
     $("statusMessage").textContent = erro.message || "Não foi possível conectar ao jogo.";
     console.error("Erro ao ligar ao servidor:", erro);
@@ -110,18 +207,15 @@ async function resgatarTarefa(id) {
 }
 
 async function verAnuncioDobrar() {
-  try { atualizarEcra(await requisitar("/ads/dobrar", { telegramId: TELEGRAM_ID })); mostrarToast("Anúncio assistido, prêmio resgatado."); }
-  catch (erro) { mostrarToast(erro.message); }
+  return assistirAnuncio("dobrar", "boost_x2", "botaoAnuncioDobrar", "Dobro de ganhos ativado por 10 minutos!");
 }
 
 async function verAnuncioResfriar() {
-  try { atualizarEcra(await requisitar("/ads/resfriar", { telegramId: TELEGRAM_ID })); mostrarToast("Anúncio assistido, prêmio resgatado."); }
-  catch (erro) { mostrarToast(erro.message); }
+  return assistirAnuncio("resfriar", "cool_pc", "botaoAnuncioResfriar", "Anúncio assistido, prêmio resgatado. PC resfriado!");
 }
 
 async function verAnuncioSaque() {
-  try { atualizarEcra(await requisitar("/ads/token-saque", { telegramId: TELEGRAM_ID })); mostrarToast("Anúncio assistido, prêmio resgatado."); }
-  catch (erro) { mostrarToast(erro.message); }
+  return assistirAnuncio("saque", "withdrawal_token", "botaoAnuncioSaque", "Anúncio assistido, prêmio resgatado. Token de saque liberado!");
 }
 
 async function sacarSatoshis(valor) {
@@ -131,7 +225,10 @@ async function sacarSatoshis(valor) {
   catch (erro) { mostrarToast(erro.message || "Confira os sats liberados e seu token de saque."); }
 }
 
-function renderizarContratados(contratados = []) { const chaveRenderizacao = JSON.stringify(contratados); if (chaveRenderizacao === window.__contractorsRenderKey) return; window.__contractorsRenderKey = chaveRenderizacao;
+function renderizarContratados(contratados = []) {
+  const chaveRenderizacao = JSON.stringify(contratados);
+  if (chaveRenderizacao === contractorsRenderKey) return;
+  contractorsRenderKey = chaveRenderizacao;
   if (!Array.isArray(contratados) || contratados.length === 0) {
     $("contractor-list").innerHTML = "<p class='empty-state'>A equipe não carregou. Confirme a conexão e reinicie o backend atualizado.</p>";
     return;
@@ -144,23 +241,36 @@ function renderizarContratados(contratados = []) { const chaveRenderizacao = JSO
 
 function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)=>!item.resgatada); const chave = itemAtual ? JSON.stringify([itemAtual.id,itemAtual.nome,itemAtual.descricao,itemAtual.recompensaSatoshis,itemAtual.objetivo,itemAtual.pronta]) : (tarefas.length ? "complete" : "empty"); if (chave === window.__taskRenderKey) { if (itemAtual) { const progresso = `${formatar(itemAtual.progresso)} / ${formatar(itemAtual.objetivo)}`; const texto = $("task-list").querySelector(".task-bottom > span:first-child"); if (texto) texto.textContent = progresso; const barra = $("task-list").querySelector(".task-track i"); if (barra) barra.style.width = `${Math.min(100,(itemAtual.progresso/itemAtual.objetivo)*100)}%`; } return; } window.__taskRenderKey = chave;
   if (!Array.isArray(tarefas) || tarefas.length === 0) {
-    $("task-list").innerHTML = "<p class='empty-state'>As tarefas não carregaram. Reinicie o backend atualizado.</p>";
+    if (taskRenderKey !== "empty") {
+      $("task-list").innerHTML = "<p class='empty-state'>As tarefas não carregaram. Reinicie o backend atualizado.</p>";
+      taskRenderKey = "empty";
+    }
     return;
   }
   const atual = tarefas.find((item) => !item.resgatada);
   if (!atual) {
-    $("task-list").innerHTML = "<p class='empty-state'>Você concluiu todas as tarefas de hoje. Novas tarefas chegam amanhã.</p>";
+    if (taskRenderKey !== "complete") {
+      $("task-list").innerHTML = "<p class='empty-state'>Você concluiu todas as tarefas de hoje. Novas tarefas chegam amanhã.</p>";
+      taskRenderKey = "complete";
+    }
     return;
   }
   const tarefa = atual;
-  $("task-list").innerHTML = (() => {
-    const item = tarefa;
-    const progresso = `${formatar(item.progresso)} / ${formatar(item.objetivo)}`;
-    const acao = item.pronta ? `<button class="task-button ready" onclick="resgatarTarefa('${item.id}')">RESGATAR +${item.recompensaSatoshis} SATS</button>`
+  const chaveRenderizacao = JSON.stringify([
+    tarefa.id, tarefa.nome, tarefa.descricao, tarefa.recompensaSatoshis,
+    tarefa.objetivo, tarefa.pronta
+  ]);
+  const progresso = `${formatar(tarefa.progresso)} / ${formatar(tarefa.objetivo)}`;
+  if (chaveRenderizacao !== taskRenderKey) {
+    const acao = tarefa.pronta
+      ? `<button class="task-button ready" onclick="resgatarTarefa('${tarefa.id}')">RESGATAR +${tarefa.recompensaSatoshis} SATS</button>`
       : `<span class="task-progress">${progresso}</span>`;
-    const percentual = Math.min(100, (item.progresso / item.objetivo) * 100);
-    return `<article class="task-card"><div class="task-top"><div><strong>${item.nome}</strong><small>${item.descricao}</small></div><b>◈ ${item.recompensaSatoshis} sats</b></div><div class="task-track"><i style="width:${percentual}%"></i></div><div class="task-bottom"><span>${progresso}</span>${acao}</div></article>`;
-  })();
+    $("task-list").innerHTML = `<article class="task-card"><div class="task-top"><div><strong>${tarefa.nome}</strong><small>${tarefa.descricao}</small></div><b>◈ ${tarefa.recompensaSatoshis} sats</b></div><div class="task-track"><i></i></div><div class="task-bottom"><span class="task-progress-value"></span><span class="task-action">${acao}</span></div></article>`;
+    taskRenderKey = chaveRenderizacao;
+  }
+  $("task-list").querySelector(".task-progress-value").textContent = progresso;
+  const percentual = Math.min(100, (tarefa.progresso / tarefa.objetivo) * 100);
+  $("task-list").querySelector(".task-track i").style.width = `${percentual}%`;
 }
 
 function atualizarEcra(dados) {

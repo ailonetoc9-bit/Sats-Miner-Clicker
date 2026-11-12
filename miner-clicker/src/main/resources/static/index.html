@@ -50,12 +50,12 @@
       <section class="tab-panel hidden" id="painel-saque">
         <div class="panel-heading"><div><span class="eyebrow">SEU PROGRESSO</span><h2>Carteira</h2></div><span class="panel-decoration">◈</span></div>
         <div class="wallet-summary"><span>Disponível para sacar agora</span><strong><span id="saldoCarteira">0</span> <small>SATS</small></strong><p>Até 100 sats liberados por dia. O saldo acumulado pode passar desse limite.</p></div>
-        <button class="action-button secondary" type="button" onclick="verAnuncioSaque()"><span>🎟️</span><span><strong>Ganhar token de saque</strong><small>Assistir anúncio para liberar</small></span><b>›</b></button>
+        <button id="botaoAnuncioSaque" class="action-button secondary" type="button" onclick="verAnuncioSaque()"><span>🎟️</span><span><strong>Ganhar token de saque</strong><small>Assistir anúncio para liberar</small></span><b>›</b></button>
         <label class="withdraw-field">Valor do saque<input id="valorSaque" type="number" min="1" max="100" value="2" inputmode="numeric"></label>
         <button class="action-button cashout" type="button" onclick="sacarSatoshis()"><span>₿</span><span><strong>Sacar sats liberados</strong><small>Usa 1 token de saque · fictício nesta versão</small></span><b>›</b></button>
       </section>
-      <section class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
-      <section class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
+      <section class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button id="botaoAnuncioDobrar" type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
+      <section class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button id="botaoAnuncioResfriar" type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
       <p id="statusMessage" class="status-message" role="status" aria-live="polite">Conectando à garagem...</p>
     </main>
     <footer><span>MINER CLUB</span><span>MINERE COM CONSISTÊNCIA ✦</span></footer>

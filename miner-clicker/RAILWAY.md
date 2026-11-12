@@ -29,4 +29,19 @@ Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e o usuá
 
 ## Antes de oferecer recompensas reais
 
-As rotas de anúncio ainda simulam a conclusão e o saque continua fictício. Não habilite pagamentos reais até integrar um provedor de anúncios com confirmação de conclusão no backend, integrar a API de pagamentos e configurar backups do PostgreSQL. O valor da carteira atual não é convertido automaticamente para pagamentos.
+O jogo usa o formato Rewarded Interstitial do Monetag para os três botões de anúncio. A recompensa só é aplicada depois que o backend recebe a confirmação `valued` do postback e valida uma sessão única; o retorno visual do navegador não concede o prêmio por conta própria. O saque continua fictício e o saldo atual não é convertido automaticamente em pagamentos.
+
+### Ativar anúncios reais no Monetag
+
+1. Crie uma conta de publisher no [Monetag](https://publishers.monetag.com/) e cadastre o bot/Mini App na seção **Telegram Mini Apps**. Aguarde a aprovação e crie o SDK/Rewarded Interstitial para obter o **Main Zone ID** e a URL `src` do script.
+2. No serviço do jogo na Railway, adicione estas variáveis:
+   - `MONETAG_ZONE_ID`: Main Zone ID (não use o sub-zone ID).
+   - `MONETAG_SDK_URL`: apenas o endereço que aparece no atributo `src` da tag gerada pelo Monetag (deve começar por `https://`).
+   - `MONETAG_POSTBACK_SECRET`: uma senha aleatória longa, igual à que será usada no postback do Monetag.
+3. Salve uma URL de postback nas configurações da Main Zone no Monetag. Substitua `SEU-DOMINIO-RAILWAY` pelo domínio HTTPS do serviço e `SUA-CHAVE` pela mesma chave definida em `MONETAG_POSTBACK_SECRET`:
+
+   `https://SEU-DOMINIO-RAILWAY/api/game/ads/postback?secret=SUA-CHAVE&ymid={ymid}&zone_id={zone_id}&event_type={event_type}&reward_event_type={reward_event_type}`
+
+4. Faça novo deploy. Os três botões ficam habilitados quando as variáveis estão corretas. O backend grava cada sessão e processa um único prêmio por sessão, somente quando o Monetag reporta uma impressão `valued`.
+
+Se qualquer variável estiver vazia, o servidor mantém os anúncios desabilitados. Nunca coloque `MONETAG_POSTBACK_SECRET` no JavaScript, no GitHub ou na URL do Mini App. Guarde-o como variável secreta tanto na Railway quanto no campo de postback do Monetag.

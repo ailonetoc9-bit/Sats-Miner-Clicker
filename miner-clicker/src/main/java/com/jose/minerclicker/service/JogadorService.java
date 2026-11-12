@@ -148,16 +148,18 @@ public class JogadorService {
     }
 
     public GameState dobrarGanhos(String telegramId) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         LocalDateTime agora = LocalDateTime.now();
+        sincronizarAntesDaAcao(jogador);
         jogador.setBonusDobroAte((jogador.getBonusDobroAte() != null && jogador.getBonusDobroAte().isAfter(agora)
                 ? jogador.getBonusDobroAte() : agora).plusMinutes(10));
         return criarEstado(repository.save(jogador));
     }
 
     public GameState resfriarPC(String telegramId) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         LocalDateTime agora = LocalDateTime.now();
+        sincronizarAntesDaAcao(jogador);
         jogador.setUltimoResfriamento(agora);
         jogador.setUltimaSincronizacao(agora);
         jogador.setSegundosPcAtivoDesdeResfriamento(0);
@@ -165,7 +167,8 @@ public class JogadorService {
     }
 
     public GameState ganharTokenSaque(String telegramId) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
+        sincronizarAntesDaAcao(jogador);
         jogador.setTokensDeSaque(jogador.getTokensDeSaque() + 1);
         return criarEstado(repository.save(jogador));
     }
@@ -325,6 +328,11 @@ public class JogadorService {
 
     private Jogador encontrar(String telegramId) {
         return repository.findById(telegramId).orElseThrow(() -> new IllegalStateException("Jogador não encontrado."));
+    }
+
+    private Jogador encontrarComBloqueio(String telegramId) {
+        return repository.findByIdForUpdate(telegramId)
+                .orElseThrow(() -> new IllegalStateException("Jogador não encontrado."));
     }
 
     private GameState criarEstado(Jogador jogador) {
