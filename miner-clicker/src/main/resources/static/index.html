@@ -14,6 +14,7 @@
   <div id="game-container">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">M</span><div><strong>MINER CLUB</strong><small>SUA GARAGEM</small></div></div>
+      <button id="botaoTutorial" class="tutorial-help" type="button" aria-label="Ver tutorial do jogo" title="Como jogar"><span aria-hidden="true">?</span> Ajuda</button>
       <div class="online-pill"><i></i> ONLINE</div>
     </header>
 
@@ -54,14 +55,24 @@
         <label class="withdraw-field">Valor do saque<input id="valorSaque" type="number" min="1" max="100" value="2" inputmode="numeric"></label>
         <button class="action-button cashout" type="button" onclick="sacarSatoshis()"><span>₿</span><span><strong>Sacar sats liberados</strong><small>Usa 1 token de saque · fictício nesta versão</small></span><b>›</b></button>
       </section>
-      <section class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button id="botaoAnuncioDobrar" type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
-      <section class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button id="botaoAnuncioResfriar" type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
+      <section id="bonus-card" class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button id="botaoAnuncioDobrar" type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
+      <section id="cooling-card" class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button id="botaoAnuncioResfriar" type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
       <p id="statusMessage" class="status-message" role="status" aria-live="polite">Conectando à garagem...</p>
     </main>
     <footer><span>MINER CLUB</span><span>MINERE COM CONSISTÊNCIA ✦</span></footer>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
+  <div id="tutorialOverlay" class="tutorial-overlay hidden" aria-hidden="true">
+    <section class="tutorial-dialog" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialText" tabindex="-1">
+      <div class="tutorial-topline"><span id="tutorialStepCount">ETAPA 1 DE 9</span><button id="tutorialSkip" type="button">Pular</button></div>
+      <div class="tutorial-progress"><i id="tutorialProgress"></i></div>
+      <p class="tutorial-eyebrow">GUIA DA GARAGEM</p>
+      <h2 id="tutorialTitle"></h2>
+      <p id="tutorialText" class="tutorial-text"></p>
+      <div class="tutorial-actions"><button id="tutorialBack" class="tutorial-back" type="button">Voltar</button><button id="tutorialNext" class="tutorial-next" type="button">Continuar</button></div>
+    </section>
+  </div>
   <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
-  <script src="app.js?v=20261112-auto-5m-1"></script>
+  <script src="app.js?v=20261112-tutorial-1"></script>
 </body>
 </html>
