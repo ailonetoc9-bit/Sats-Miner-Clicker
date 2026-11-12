@@ -65,7 +65,11 @@ public class GameController {
     public ResponseEntity<RewardedAdService.AdSessionView> criarSessaoAnuncio(
             @RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
             @RequestParam(required = false) String telegramId, @RequestParam String tipo) {
-        return ResponseEntity.ok(rewardedAdService.criarSessao(usuario(initData, telegramId, null).id(), tipo));
+        var jogador = usuario(initData, telegramId, null);
+        // O Mini App pode solicitar o anúncio logo após reabrir sem que a sincronização
+        // do perfil tenha terminado. Garante o registro antes de criar a sessão.
+        jogadorService.obterOuCriarJogador(jogador.id(), jogador.nome());
+        return ResponseEntity.ok(rewardedAdService.criarSessao(jogador.id(), tipo));
     }
 
     @GetMapping("/ads/sessao/{id}")
