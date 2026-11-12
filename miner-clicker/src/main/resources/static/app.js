@@ -20,6 +20,19 @@ let interstitialAutomaticoConfigurado = false;
 
 const INTERVALO_INTERSTITIAL_SEGUNDOS = 5 * 60;
 const MAX_INTERSTITIALS_POR_HORA = 12;
+const PASSOS_TUTORIAL = [
+  { titulo: "Bem-vindo ao Miner Club!", texto: "Aqui você evolui sua garagem, monta uma equipe e cumpre tarefas para juntar satoshis. Vamos conhecer cada parte do jogo.", alvo: null },
+  { titulo: "Comece minerando moedas", texto: "Cada clique no cenário rende 1 moeda no início. Seu saldo fica no alto da tela; você também pode aumentá-lo com upgrades e renda passiva.", alvo: "#palco-jogo" },
+  { titulo: "Evolua seu setup", texto: "Use moedas para comprar upgrades como teclado, mesa, monitor e placa de vídeo. Cada melhoria aumenta o ganho por clique; o preço e o bônus aparecem nesta seção.", aba: "loja", alvo: "#painel-loja" },
+  { titulo: "Monte sua equipe", texto: "Contrate profissionais e compre novos níveis para aumentar a renda passiva. Eles produzem moedas enquanto você joga e também enquanto está fora; ao voltar, os ganhos offline são contabilizados.", aba: "equipe", alvo: "#painel-equipe" },
+  { titulo: "Complete tarefas para juntar sats", texto: "Você verá uma tarefa por vez. Cumpra metas de cliques, moedas, renda passiva, upgrades ou níveis de contratados e resgate a recompensa de 2 a 8 sats. Depois, novas metas aparecem e as tarefas se repetem.", aba: "tarefas", alvo: "#painel-tarefas" },
+  { titulo: "Confira sua carteira", texto: "Os sats resgatados nas tarefas ficam acumulados no seu saldo. A ideia é permitir saques para uma carteira real, mas nesta versão o saque ainda é fictício. O limite diário é de até 100 sats liberados; seu saldo acumulado pode passar disso.", aba: "saque", alvo: "#painel-saque" },
+  { titulo: "Mantenha o PC resfriado", texto: "A cada 10 minutos jogando, o PC superaquece e a renda passiva cai para 10%. Toque em Resfriar e assista ao anúncio para voltar à renda normal. Os ganhos offline são calculados quando você retorna.", aba: "loja", alvo: "#cooling-card", posicao: "topo" },
+  { titulo: "Libere sats ao longo do tempo", texto: "Com o jogo aberto, 2 sats por minuto são liberados para saque se você já tiver sats acumulados. São liberados até 100 por dia. Não há contador na tela; o saldo liberado aparece aqui.", alvo: ".room-stats" },
+  { titulo: "Anúncios e dobro de ganhos", texto: "Se quiser, assista a um anúncio no botão Ganhe em dobro para duplicar moedas por 10 minutos. Além dos anúncios solicitados pelos botões, a Monetag pode exibir um anúncio automático a cada 5 minutos enquanto o Mini App estiver aberto no Telegram.", aba: "loja", alvo: ["#bonus-card", "#cooling-card"], posicao: "topo" },
+  { titulo: "Pronto para começar!", texto: "Agora é com você: clique para minerar, invista na garagem, fortaleça a equipe e resgate suas tarefas. Se quiser rever este guia, toque em Ajuda no topo da tela.", alvo: null }
+];
+let passoTutorialAtual = 0;
 
 const $ = (id) => document.getElementById(id);
 const elMoedas = $("moedas");
@@ -192,6 +205,7 @@ async function iniciarJogo() {
   try {
     atualizarEcra(await requisitar("/login", { telegramId: TELEGRAM_ID, nome: NOME }));
     $("statusMessage").textContent = "Garagem conectada · progresso sincronizado";
+    if (!tutorialJaVisto()) setTimeout(() => abrirTutorial(0), 450);
     prepararAnuncios();
   } catch (erro) {
     $("statusMessage").textContent = erro.message || "Não foi possível conectar ao jogo.";
@@ -361,11 +375,80 @@ function renderizarSaldoPrevisto() {
   mostrarMoedas(moedasServidor + cliquesPendentes * poder * multiplicador + moedasPassivasPrevistas);
 }
 
+function chaveTutorial() {
+  const usuarioId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "visitante";
+  return `miner-club-tutorial-v1-${usuarioId}`;
+}
+
+function tutorialJaVisto() {
+  try { return localStorage.getItem(chaveTutorial()) === "sim"; }
+  catch { return false; }
+}
+
+function marcarTutorialComoVisto() {
+  try { localStorage.setItem(chaveTutorial(), "sim"); }
+  catch { /* O tutorial continua disponível pelo botão Ajuda nesta sessão. */ }
+}
+
+function selecionarAba(id) {
+  document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === id));
+  ["loja", "equipe", "tarefas", "saque"].forEach((painel) => $("painel-" + painel).classList.toggle("hidden", painel !== id));
+}
+
+function atualizarPassoTutorial() {
+  const passo = PASSOS_TUTORIAL[passoTutorialAtual];
+  const overlay = $("tutorialOverlay");
+  document.querySelectorAll(".tutorial-target").forEach((elemento) => elemento.classList.remove("tutorial-target"));
+  if (passo.aba) selecionarAba(passo.aba);
+  $("tutorialStepCount").textContent = `ETAPA ${passoTutorialAtual + 1} DE ${PASSOS_TUTORIAL.length}`;
+  $("tutorialProgress").style.width = `${((passoTutorialAtual + 1) / PASSOS_TUTORIAL.length) * 100}%`;
+  $("tutorialTitle").textContent = passo.titulo;
+  $("tutorialText").textContent = passo.texto;
+  $("tutorialBack").disabled = passoTutorialAtual === 0;
+  $("tutorialNext").textContent = passoTutorialAtual === PASSOS_TUTORIAL.length - 1 ? "Começar a jogar" : "Continuar";
+  overlay.classList.toggle("tutorial-top", passo.posicao === "topo");
+  const alvos = Array.isArray(passo.alvo) ? passo.alvo : (passo.alvo ? [passo.alvo] : []);
+  alvos.forEach((seletor) => document.querySelector(seletor)?.classList.add("tutorial-target"));
+  const primeiroAlvo = alvos.length ? document.querySelector(alvos[0]) : null;
+  if (primeiroAlvo) primeiroAlvo.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function abrirTutorial(indice = 0) {
+  passoTutorialAtual = Math.max(0, Math.min(indice, PASSOS_TUTORIAL.length - 1));
+  $("tutorialOverlay").classList.remove("hidden");
+  $("tutorialOverlay").setAttribute("aria-hidden", "false");
+  $("game-container").classList.add("tutorial-active");
+  atualizarPassoTutorial();
+  $("tutorialNext").focus();
+}
+
+function fecharTutorial() {
+  const overlay = $("tutorialOverlay");
+  overlay.classList.add("hidden");
+  overlay.setAttribute("aria-hidden", "true");
+  $("game-container").classList.remove("tutorial-active");
+  document.querySelectorAll(".tutorial-target").forEach((elemento) => elemento.classList.remove("tutorial-target"));
+  marcarTutorialComoVisto();
+  $("botaoTutorial").focus();
+}
+
+function avancarTutorial(direcao) {
+  const proximo = passoTutorialAtual + direcao;
+  if (proximo < 0) return;
+  if (proximo >= PASSOS_TUTORIAL.length) return fecharTutorial();
+  passoTutorialAtual = proximo;
+  atualizarPassoTutorial();
+}
+
 palco.addEventListener("click", clicarPC);
-document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
-  document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === tab));
-  ["loja", "equipe", "tarefas", "saque"].forEach((id) => $("painel-" + id).classList.toggle("hidden", tab.dataset.tab !== id));
-}));
+document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => selecionarAba(tab.dataset.tab)));
+$("botaoTutorial").addEventListener("click", () => abrirTutorial());
+$("tutorialNext").addEventListener("click", () => avancarTutorial(1));
+$("tutorialBack").addEventListener("click", () => avancarTutorial(-1));
+$("tutorialSkip").addEventListener("click", fecharTutorial);
+document.addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape" && !$("tutorialOverlay").classList.contains("hidden")) fecharTutorial();
+});
 iniciarJogo();
 setInterval(sincronizarComServidor, 1000);
 setInterval(() => { if (jogadorAtual) renderizarSaldoPrevisto(); }, 100);
