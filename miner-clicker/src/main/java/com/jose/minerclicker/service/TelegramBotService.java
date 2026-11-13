@@ -77,13 +77,13 @@ public class TelegramBotService {
                     .retrieve()
                     .body(JsonNode.class);
             if (response == null || !response.path("ok").asBoolean(false)) {
-                log.warn("Telegram webhook was not registered: {}", response == null ? "empty response" : response.path("description").asText("unknown error"));
+                log.warn("Telegram webhook was not registered: {}", redactToken(response == null ? "empty response" : response.path("description").asText("unknown error")));
             } else {
                 log.info("Telegram bot webhook registered.");
             }
         } catch (Exception error) {
             // Bot delivery should not prevent the game API from starting if Telegram is temporarily unavailable.
-            log.warn("Could not register Telegram bot webhook: {}", error.getMessage());
+            log.warn("Could not register Telegram bot webhook: {}", safeError(error));
         }
     }
 
@@ -99,10 +99,10 @@ public class TelegramBotService {
                     .retrieve()
                     .body(JsonNode.class);
             if (response == null || !response.path("ok").asBoolean(false)) {
-                log.warn("Telegram bot commands were not updated: {}", response == null ? "empty response" : response.path("description").asText("unknown error"));
+                log.warn("Telegram bot commands were not updated: {}", redactToken(response == null ? "empty response" : response.path("description").asText("unknown error")));
             }
         } catch (Exception error) {
-            log.warn("Could not update Telegram bot commands: {}", error.getMessage());
+            log.warn("Could not update Telegram bot commands: {}", safeError(error));
         }
     }
 
@@ -133,12 +133,12 @@ public class TelegramBotService {
                     .retrieve()
                     .body(JsonNode.class);
             if (response == null || !response.path("ok").asBoolean(false)) {
-                log.warn("Telegram bot profile photo was not updated: {}", response == null ? "empty response" : response.path("description").asText("unknown error"));
+                log.warn("Telegram bot profile photo was not updated: {}", redactToken(response == null ? "empty response" : response.path("description").asText("unknown error")));
             } else {
                 log.info("Telegram bot profile photo updated.");
             }
         } catch (Exception error) {
-            log.warn("Could not update Telegram bot profile photo: {}", error.getMessage());
+            log.warn("Could not update Telegram bot profile photo: {}", safeError(error));
         }
     }
 
@@ -153,12 +153,26 @@ public class TelegramBotService {
                 "text", "⛏️ Jogar Sats Miner Club",
                 "web_app", Map.of("url", GAME_URL)
         ))));
-        http.post()
-                .uri("https://api.telegram.org/bot{token}/sendMessage", botToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("chat_id", chatId, "text", text, "reply_markup", keyboard))
-                .retrieve()
-                .toBodilessEntity();
+        try {
+            http.post()
+                    .uri("https://api.telegram.org/bot{token}/sendMessage", botToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("chat_id", chatId, "text", text, "reply_markup", keyboard))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception error) {
+            log.warn("Could not send Telegram welcome message: {}", safeError(error));
+        }
+    }
+
+    private String safeError(Exception error) {
+        return redactToken(error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
+    }
+
+    private String redactToken(String value) {
+        if (value == null) return "unknown error";
+        String redacted = botToken == null || botToken.isBlank() ? value : value.replace(botToken, "[redacted]");
+        return redacted.replaceAll("\\b\\d{6,}:[A-Za-z0-9_-]{20,}\\b", "[redacted]");
     }
 
     private static String sha256(String value) {
