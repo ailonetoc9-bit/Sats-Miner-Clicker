@@ -5,6 +5,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.Base64;
 
 @Service
 public class TelegramBotService {
@@ -56,6 +67,8 @@ public class TelegramBotService {
     @EventListener(ApplicationReadyEvent.class)
     public void registerWebhook() {
         if (botToken.isBlank() || webhookUrl.isBlank()) return;
+        setProfilePhoto();
+        setCommands();
         try {
             JsonNode response = http.post()
                     .uri("https://api.telegram.org/bot{token}/setWebhook", botToken)
@@ -71,6 +84,61 @@ public class TelegramBotService {
         } catch (Exception error) {
             // Bot delivery should not prevent the game API from starting if Telegram is temporarily unavailable.
             log.warn("Could not register Telegram bot webhook: {}", error.getMessage());
+        }
+    }
+
+    private void setCommands() {
+        try {
+            JsonNode response = http.post()
+                    .uri("https://api.telegram.org/bot{token}/setMyCommands", botToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("commands", List.of(
+                            Map.of("command", "start", "description", "Abrir o Sats Miner Club"),
+                            Map.of("command", "help", "description", "Ver como começar a jogar")
+                    )))
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (response == null || !response.path("ok").asBoolean(false)) {
+                log.warn("Telegram bot commands were not updated: {}", response == null ? "empty response" : response.path("description").asText("unknown error"));
+            }
+        } catch (Exception error) {
+            log.warn("Could not update Telegram bot commands: {}", error.getMessage());
+        }
+    }
+
+    private void setProfilePhoto() {
+        try (InputStream encodedImage = new ClassPathResource("static/brand/sats-miner-club-logo.png.b64").getInputStream()) {
+            byte[] png = Base64.getDecoder().decode(encodedImage.readAllBytes());
+            BufferedImage source = ImageIO.read(new java.io.ByteArrayInputStream(png));
+            BufferedImage rgb = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics = rgb.createGraphics();
+            graphics.setColor(new Color(246, 237, 207));
+            graphics.fillRect(0, 0, rgb.getWidth(), rgb.getHeight());
+            graphics.drawImage(source, 0, 0, null);
+            graphics.dispose();
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            ImageIO.write(rgb, "jpg", output);
+
+            ByteArrayResource photo = new ByteArrayResource(output.toByteArray()) {
+                @Override
+                public String getFilename() { return "sats-miner-club.jpg"; }
+            };
+            MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+            form.add("photo", "{\"type\":\"static\",\"photo\":\"attach://profile_photo\"}");
+            form.add("profile_photo", photo);
+            JsonNode response = http.post()
+                    .uri("https://api.telegram.org/bot{token}/setMyProfilePhoto", botToken)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(form)
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (response == null || !response.path("ok").asBoolean(false)) {
+                log.warn("Telegram bot profile photo was not updated: {}", response == null ? "empty response" : response.path("description").asText("unknown error"));
+            } else {
+                log.info("Telegram bot profile photo updated.");
+            }
+        } catch (Exception error) {
+            log.warn("Could not update Telegram bot profile photo: {}", error.getMessage());
         }
     }
 
