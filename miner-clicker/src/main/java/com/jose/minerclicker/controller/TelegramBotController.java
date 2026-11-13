@@ -1,6 +1,6 @@
 package com.jose.minerclicker.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.jose.minerclicker.service.TelegramBotService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
