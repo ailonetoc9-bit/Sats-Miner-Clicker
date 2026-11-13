@@ -25,7 +25,7 @@ O arquivo `.env.railway.example` serve apenas como lembrete dos nomes das variá
 
 ## Desenvolvimento local
 
-Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e exige autenticação por padrão. Para testes locais sem Telegram, configure explicitamente `TELEGRAM_DEV_MODE=true` na execução da IDE; nunca use essa opção na Railway. O perfil `prod` também desativa o modo de teste e exige token válido.
+Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e exige autenticação por padrão; o console do H2 também fica desligado. Para testes locais sem Telegram, configure explicitamente `TELEGRAM_DEV_MODE=true` na execução da IDE; habilite o console local só quando necessário com `SPRING_H2_CONSOLE_ENABLED=true`. Nunca use essas opções na Railway. O perfil `prod` desativa o modo de teste e exige token válido.
 
 ## Antes de oferecer recompensas reais
 
