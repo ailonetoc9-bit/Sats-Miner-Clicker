@@ -30,6 +30,9 @@ public class Jogador {
     private double fracaoMoedasPassivas;
 
     private LocalDateTime ultimaSincronizacao;
+    private double creditosDeClique;
+    private LocalDateTime atualizacaoCreditosDeClique;
+    private LocalDateTime ultimaSolicitacaoAnuncio;
 
     // Variáveis de controlo de Satoshis e Tempo
     private long saldoSatoshisAcumulados;
@@ -119,6 +122,13 @@ public class Jogador {
 
     public LocalDateTime getUltimaSincronizacao() { return ultimaSincronizacao; }
     public void setUltimaSincronizacao(LocalDateTime ultimaSincronizacao) { this.ultimaSincronizacao = ultimaSincronizacao; }
+
+    public double getCreditosDeClique() { return creditosDeClique; }
+    public void setCreditosDeClique(double valor) { this.creditosDeClique = Math.max(0, valor); }
+    public LocalDateTime getAtualizacaoCreditosDeClique() { return atualizacaoCreditosDeClique; }
+    public void setAtualizacaoCreditosDeClique(LocalDateTime valor) { this.atualizacaoCreditosDeClique = valor; }
+    public LocalDateTime getUltimaSolicitacaoAnuncio() { return ultimaSolicitacaoAnuncio; }
+    public void setUltimaSolicitacaoAnuncio(LocalDateTime valor) { this.ultimaSolicitacaoAnuncio = valor; }
 
     public long getSaldoSatoshisAcumulados() { return saldoSatoshisAcumulados; }
     public void setSaldoSatoshisAcumulados(long saldoSatoshisAcumulados) { this.saldoSatoshisAcumulados = saldoSatoshisAcumulados; }
