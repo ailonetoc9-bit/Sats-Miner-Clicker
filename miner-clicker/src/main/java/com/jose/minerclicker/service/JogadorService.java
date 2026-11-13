@@ -23,6 +23,9 @@ public class JogadorService {
     private static final int SEGUNDOS_POR_MINUTO = 60;
     private static final int TEMPO_PARA_SUPERAQUECER_SEGUNDOS = 600;
     private static final int SEGUNDOS_MAX_POR_SYNC_ATIVO = 15;
+    private static final double CLIQUES_POR_SEGUNDO = 20.0;
+    private static final double RESERVA_MAXIMA_CLIQUES = 60.0;
+    private static final int INTERVALO_MINIMO_ANUNCIOS_SEGUNDOS = 8;
     private static final int[] MARCOS_CONTRATADOS = {10, 25, 50};
     private static final String[][] UPGRADES = {
             {"Teclado mecânico", "Teclas mais rápidas para minerar", "⌨️"},
@@ -57,7 +60,7 @@ public class JogadorService {
     }
 
     public GameState obterOuCriarJogador(String telegramId, String nome) {
-        Jogador jogador = repository.findById(telegramId).orElseGet(() -> repository.save(new Jogador(telegramId, nome)));
+        Jogador jogador = repository.findByIdForUpdate(telegramId).orElseGet(() -> repository.save(new Jogador(telegramId, nome)));
         if (jogador.getUltimaSincronizacao() == null) jogador.setUltimaSincronizacao(LocalDateTime.now());
         processarRendaOffline(jogador, LocalDateTime.now());
         jogador.setUltimaSincronizacao(LocalDateTime.now());
@@ -66,19 +69,19 @@ public class JogadorService {
     }
 
     public GameState processarProgresso(String telegramId, int cliquesEnviados) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         LocalDateTime agora = LocalDateTime.now();
         prepararDia(jogador, agora.toLocalDate());
 
         long segundosPassados = segundosDesdeUltimaSync(jogador, agora);
         int segundosAtivos = (int) Math.min(segundosPassados, SEGUNDOS_MAX_POR_SYNC_ATIVO);
         long moedasPassivas = calcularRenda(jogador, segundosPassados, agora, true);
-        int cliquesValidos = Math.max(0, cliquesEnviados);
+        int cliquesValidos = limitarCliques(jogador, cliquesEnviados, agora);
         long multiplicador = bonusDobroAtivo(jogador, agora) ? 2L : 1L;
         long moedasDosCliques = (long) cliquesValidos * jogador.getPoderDeMineracaoPorClique() * multiplicador;
-        long moedasGanhos = moedasPassivas + moedasDosCliques;
+        long moedasGanhos = somarSemOverflow(moedasPassivas, moedasDosCliques);
 
-        jogador.setMoedasVirtuais(jogador.getMoedasVirtuais() + moedasGanhos);
+        jogador.setMoedasVirtuais(somarSemOverflow(jogador.getMoedasVirtuais(), moedasGanhos));
         incrementarTarefa(jogador, "cliques", cliquesValidos);
         incrementarTarefa(jogador, "moedas", moedasGanhos);
         incrementarTarefa(jogador, "passivo", moedasPassivas);
@@ -94,7 +97,7 @@ public class JogadorService {
     }
 
     public GameState comprarUpgrade(String telegramId) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         sincronizarAntesDaAcao(jogador);
         long preco = custoProximoUpgrade(jogador);
         if (jogador.getMoedasVirtuais() < preco) {
@@ -109,7 +112,7 @@ public class JogadorService {
     }
 
     public GameState comprarContratado(String telegramId, String contratadoId) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         sincronizarAntesDaAcao(jogador);
         int indice = indiceContratado(contratadoId);
         int nivelAtual = jogador.getNiveisContratados().getOrDefault(contratadoId, 0);
@@ -127,7 +130,7 @@ public class JogadorService {
     }
 
     public GameState resgatarTarefa(String telegramId, String tarefaId) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         sincronizarAntesDaAcao(jogador);
         TaskDefinition tarefa = TAREFAS.stream().filter(item -> item.id().equals(tarefaId)).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Tarefa não encontrada."));
@@ -137,12 +140,14 @@ public class JogadorService {
         if (progresso < objetivo) throw new IllegalStateException("Conclua a tarefa antes de resgatar a recompensa.");
         jogador.getTarefasResgatadas().add(tarefaId);
         jogador.getProgressoTarefas().put(tarefa.chaveProgresso(), 0L);
-        jogador.setSaldoSatoshisAcumulados(jogador.getSaldoSatoshisAcumulados() + tarefa.recompensa());
-        jogador.setSatoshisGanhosHoje(jogador.getSatoshisGanhosHoje() + tarefa.recompensa());
+        jogador.setSaldoSatoshisAcumulados(somarSemOverflow(jogador.getSaldoSatoshisAcumulados(), tarefa.recompensa()));
+        jogador.setSatoshisGanhosHoje((int) Math.min(Integer.MAX_VALUE,
+                (long) jogador.getSatoshisGanhosHoje() + tarefa.recompensa()));
         if (jogador.getTarefasResgatadas().size() == TAREFAS.size()) {
             jogador.getTarefasResgatadas().clear();
             jogador.getProgressoTarefas().clear();
-            TAREFAS.forEach(item -> jogador.getCiclosTarefas().merge(item.id(), 1, Integer::sum));
+            TAREFAS.forEach(item -> jogador.getCiclosTarefas().merge(item.id(), 1,
+                    (ciclo, incremento) -> ciclo == Integer.MAX_VALUE ? ciclo : ciclo + incremento));
         }
         return criarEstado(repository.save(jogador));
     }
@@ -174,7 +179,7 @@ public class JogadorService {
     }
 
     public GameState realizarSaque(String telegramId, int valorSats) {
-        Jogador jogador = encontrar(telegramId);
+        Jogador jogador = encontrarComBloqueio(telegramId);
         sincronizarAntesDaAcao(jogador);
         int liberadosAindaHoje = Math.max(0, jogador.getSatoshisLiberadosHoje() - jogador.getSatoshisSacadosHoje());
         long disponiveis = Math.min(jogador.getSaldoSatoshisAcumulados(), liberadosAindaHoje);
@@ -192,7 +197,7 @@ public class JogadorService {
         prepararDia(jogador, agora.toLocalDate());
         long segundos = segundosDesdeUltimaSync(jogador, agora);
         long moedasPassivas = calcularRenda(jogador, segundos, agora, false);
-        jogador.setMoedasVirtuais(jogador.getMoedasVirtuais() + moedasPassivas);
+        jogador.setMoedasVirtuais(somarSemOverflow(jogador.getMoedasVirtuais(), moedasPassivas));
         incrementarTarefa(jogador, "moedas", moedasPassivas);
         incrementarTarefa(jogador, "passivo", moedasPassivas);
     }
@@ -202,7 +207,7 @@ public class JogadorService {
         prepararDia(jogador, agora.toLocalDate());
         long segundos = Math.min(segundosDesdeUltimaSync(jogador, agora), SEGUNDOS_MAX_POR_SYNC_ATIVO);
         long moedasPassivas = calcularRenda(jogador, segundos, agora, true);
-        jogador.setMoedasVirtuais(jogador.getMoedasVirtuais() + moedasPassivas);
+        jogador.setMoedasVirtuais(somarSemOverflow(jogador.getMoedasVirtuais(), moedasPassivas));
         jogador.setTempoAtivoHojeSegundos(jogador.getTempoAtivoHojeSegundos() + segundos);
         jogador.setSegundosPcAtivoDesdeResfriamento(jogador.getSegundosPcAtivoDesdeResfriamento() + segundos);
         jogador.setSatoshisLiberadosHoje(Math.min(MAX_SATOSHI_SAQUE_DIA,
@@ -262,6 +267,35 @@ public class JogadorService {
     private long segundosDesdeUltimaSync(Jogador jogador, LocalDateTime agora) {
         if (jogador.getUltimaSincronizacao() == null) return 0;
         return Math.max(0, Duration.between(jogador.getUltimaSincronizacao(), agora).getSeconds());
+    }
+
+    private int limitarCliques(Jogador jogador, int enviados, LocalDateTime agora) {
+        double creditos = jogador.getCreditosDeClique();
+        LocalDateTime ultimaAtualizacao = jogador.getAtualizacaoCreditosDeClique();
+        if (ultimaAtualizacao == null) {
+            creditos = RESERVA_MAXIMA_CLIQUES;
+        } else {
+            long milissegundos = Math.max(0, Duration.between(ultimaAtualizacao, agora).toMillis());
+            creditos = Math.min(RESERVA_MAXIMA_CLIQUES, creditos + milissegundos * CLIQUES_POR_SEGUNDO / 1000.0);
+        }
+
+        int aceitos = (int) Math.min(Math.max(0, enviados), Math.floor(creditos + 1e-9));
+        jogador.setCreditosDeClique(creditos - aceitos);
+        jogador.setAtualizacaoCreditosDeClique(agora);
+        return aceitos;
+    }
+
+    public void registrarSolicitacaoAnuncio(String telegramId) {
+        Jogador jogador = encontrarComBloqueio(telegramId);
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime ultimaSolicitacao = jogador.getUltimaSolicitacaoAnuncio();
+        if (ultimaSolicitacao != null && Duration.between(ultimaSolicitacao, agora).getSeconds() < INTERVALO_MINIMO_ANUNCIOS_SEGUNDOS) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.TOO_MANY_REQUESTS,
+                    "Aguarde alguns segundos antes de pedir outro anúncio.");
+        }
+        jogador.setUltimaSolicitacaoAnuncio(agora);
+        repository.save(jogador);
     }
 
     private long custoProximoUpgrade(Jogador jogador) {
@@ -324,7 +358,13 @@ public class JogadorService {
     }
 
     private void incrementarTarefa(Jogador jogador, String id, long quantidade) {
-        if (quantidade > 0) jogador.getProgressoTarefas().merge(id, quantidade, Long::sum);
+        if (quantidade > 0) jogador.getProgressoTarefas().merge(id, quantidade, this::somarSemOverflow);
+    }
+
+    private long somarSemOverflow(long atual, long incremento) {
+        if (incremento > 0 && atual > Long.MAX_VALUE - incremento) return Long.MAX_VALUE;
+        if (incremento < 0 && atual < Long.MIN_VALUE - incremento) return Long.MIN_VALUE;
+        return atual + incremento;
     }
 
     private long objetivoTarefa(TaskDefinition tarefa, int ciclo) {
