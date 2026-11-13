@@ -265,10 +265,22 @@ public class JogadorService {
     }
 
     private long custoProximoUpgrade(Jogador jogador) {
-        int comprados = Math.max(0, jogador.getPoderDeMineracaoPorClique() - 1);
-        double multiplicador = Math.pow(1.55, comprados);
+        int comprados = upgradesComprados(jogador.getPoderDeMineracaoPorClique());
+        double multiplicador = Math.pow(1.65, comprados);
         if (multiplicador >= Long.MAX_VALUE / 100.0) return Long.MAX_VALUE;
         return Math.max(100, Math.round(100 * multiplicador));
+    }
+
+    private int upgradesComprados(int poderDeClique) {
+        int poderProjetado = 1;
+        int comprados = 0;
+        while (poderProjetado < poderDeClique && comprados < Integer.MAX_VALUE - 1) {
+            int bonus = 1 + Math.max(0, poderProjetado - 1) / 3;
+            if (poderProjetado > Integer.MAX_VALUE - bonus) return comprados + 1;
+            poderProjetado += bonus;
+            comprados++;
+        }
+        return comprados;
     }
 
     private int bonusProximoUpgrade(Jogador jogador) {
@@ -319,10 +331,13 @@ public class JogadorService {
         if (ciclo == 0) return tarefa.objetivo();
         long base = tarefa.objetivo();
         long variacao = Math.floorMod((long) ciclo * 37 + tarefa.id().hashCode(), Math.max(3, base / 3));
-        double crescimento = Math.pow(1.28, ciclo);
+        double crescimento = Math.pow(1.18, ciclo);
         long escalado = crescimento >= Long.MAX_VALUE / (double) base ? Long.MAX_VALUE : Math.round(base * crescimento);
         long valor = escalado > Long.MAX_VALUE - variacao ? Long.MAX_VALUE : escalado + variacao;
         if (valor >= Long.MAX_VALUE - 9) return Long.MAX_VALUE / 10 * 10;
+        if (tarefa.chaveProgresso().startsWith("upgrade_") || tarefa.chaveProgresso().startsWith("contratado_")) {
+            return Math.max(1, valor);
+        }
         return ((valor + 9) / 10) * 10;
     }
 
