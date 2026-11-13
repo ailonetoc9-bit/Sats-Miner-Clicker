@@ -51,6 +51,7 @@ public class RewardedAdService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entre no jogo antes de iniciar um anúncio.");
         }
         RewardedAdSession.RewardType rewardType = converterTipo(tipo);
+        jogadorService.registrarSolicitacaoAnuncio(telegramId);
         LocalDateTime agora = LocalDateTime.now();
         String id = UUID.randomUUID().toString();
         sessionRepository.save(new RewardedAdSession(id, telegramId, rewardType,
