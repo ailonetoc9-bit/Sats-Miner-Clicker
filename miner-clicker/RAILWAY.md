@@ -25,9 +25,11 @@ O arquivo `.env.railway.example` serve apenas como lembrete dos nomes das variá
 
 ## Desenvolvimento local
 
-Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e o usuário de teste. Para abrir o frontend fora do Telegram, mantenha `TELEGRAM_DEV_MODE=true`. Na Railway, o perfil `prod` desativa esse modo e exige token válido.
+Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e exige autenticação por padrão. Para testes locais sem Telegram, configure explicitamente `TELEGRAM_DEV_MODE=true` na execução da IDE; nunca use essa opção na Railway. O perfil `prod` também desativa o modo de teste e exige token válido.
 
 ## Antes de oferecer recompensas reais
+
+O servidor limita os cliques aceitos por conta a uma média de 20 por segundo, com uma reserva curta para rajadas, e serializa as alterações de saldo e recompensa por jogador. Isso reduz automação e corridas entre requisições, mas não prova que cada clique veio de uma pessoa. Antes de saques reais, implemente controles antifraude e de pagamento próprios (limites, análise de risco, registro contábil imutável e processamento idempotente) e revise-os com alguém de segurança.
 
 Os três botões de recompensa usam o formato Rewarded Interstitial do Monetag. A recompensa só é aplicada depois que o backend recebe a confirmação `valued` do postback e valida uma sessão única; o retorno visual do navegador não concede o prêmio por conta própria. O jogo também agenda um In-App Interstitial automático a cada 5 minutos, com limite de 12 por hora, apenas no Telegram Mini App. Esse formato não libera moedas, sats ou tokens. O saque continua fictício e o saldo atual não é convertido automaticamente em pagamentos.
 
