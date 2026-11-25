@@ -27,8 +27,8 @@ const PASSOS_TUTORIAL = [
   { titulo: "Comece ganhando moedas", texto: "Cada clique no cenário rende 1 moeda no início. Seu saldo fica no alto da tela; você também pode aumentá-lo com upgrades e renda passiva.", alvo: "#palco-jogo" },
   { titulo: "Evolua seu setup", texto: "Use moedas para comprar upgrades como teclado, mesa, monitor e placa de vídeo. Cada melhoria aumenta o ganho por clique; o preço e o bônus aparecem nesta seção.", aba: "loja", alvo: "#painel-loja" },
   { titulo: "Monte sua equipe", texto: "Contrate profissionais e compre novos níveis para aumentar a renda passiva. Eles produzem moedas enquanto você joga e também enquanto está fora; ao voltar, os ganhos offline são contabilizados.", aba: "equipe", alvo: "#painel-equipe" },
-  { titulo: "Complete tarefas e ganhe GRAM", texto: "Você verá uma tarefa por vez. Cumpra metas de cliques, moedas, renda passiva, upgrades ou níveis de contratados e resgate de 2 a 8 GRAM beta. As tarefas se repetem com metas variadas. Nesta beta, o saldo ainda não é um token na blockchain TON e não pode ser transferido ou sacado.", aba: "tarefas", alvo: "#painel-tarefas" },
-  { titulo: "Acompanhe seu GRAM beta", texto: "O saldo GRAM beta fica acumulado no seu perfil para testar o progresso do jogo. A integração com carteira TON e os saques ainda não estão habilitados.", aba: "pontos", alvo: "#painel-pontos" },
+  { titulo: "Complete tarefas e ganhe GRAM beta", texto: "Você verá uma tarefa por vez. Cumpra metas de cliques, moedas, renda passiva, upgrades ou níveis de contratados. As recompensas experimentais vão de 0,001 a 0,008 GRAM e têm limite diário de 0,030 GRAM beta.", aba: "tarefas", alvo: "#painel-tarefas" },
+  { titulo: "Acompanhe seu GRAM beta", texto: "O saldo fica acumulado no seu perfil para testar a economia. A meta mínima futura está em 0,100 GRAM, mas o saldo beta ainda não está na blockchain e não pode ser transferido ou sacado.", aba: "pontos", alvo: "#painel-pontos" },
   { titulo: "Mantenha o PC resfriado", texto: "A cada 10 minutos jogando, o PC superaquece e a renda passiva cai para 10%. Toque em Resfriar e assista ao anúncio para voltar à renda normal. Os ganhos offline são calculados quando você retorna.", aba: "loja", alvo: "#cooling-card", posicao: "topo" },
   { titulo: "Anúncios e dobro de ganhos", texto: "Se quiser, assista a um anúncio no botão Ganhe em dobro para duplicar moedas por 10 minutos. Além dos anúncios solicitados pelos botões, a Monetag pode exibir um anúncio automático a cada 5 minutos enquanto o Mini App estiver aberto no Telegram.", aba: "loja", alvo: ["#bonus-card", "#cooling-card"], posicao: "topo" },
   { titulo: "Pronto para começar!", texto: "Agora é com você: clique para ganhar moedas, invista na garagem, fortaleça a equipe e conclua tarefas para acumular GRAM beta. Se quiser rever este guia, toque em Ajuda no topo da tela.", alvo: null }
@@ -56,6 +56,14 @@ function formatar(valor) {
   const compacto = Math.floor((numero / divisor) * 10) / 10;
   const valorCompacto = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(compacto);
   return `${valorCompacto}${sufixos[grupo] || `e${grupo * 3}`}`;
+}
+
+function formatarGram(valor) {
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(Math.max(0, Number(valor || 0)));
+}
+
+function formatarMilliGram(valor) {
+  return formatarGram(Number(valor || 0) / 1000);
 }
 
 async function requisitar(caminho, params = {}) {
@@ -305,7 +313,7 @@ function renderizarContratados(contratados = []) {
   }).join("");
 }
 
-function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)=>!item.resgatada); const chave = itemAtual ? JSON.stringify([itemAtual.id,itemAtual.nome,itemAtual.descricao,itemAtual.recompensaPontos,itemAtual.objetivo,itemAtual.pronta]) : (tarefas.length ? "complete" : "empty"); if (chave === window.__taskRenderKey) { if (itemAtual) { const progresso = `${formatar(itemAtual.progresso)} / ${formatar(itemAtual.objetivo)}`; const texto = $("task-list").querySelector(".task-bottom > span:first-child"); if (texto) texto.textContent = progresso; const barra = $("task-list").querySelector(".task-track i"); if (barra) barra.style.width = `${Math.min(100,(itemAtual.progresso/itemAtual.objetivo)*100)}%`; } return; } window.__taskRenderKey = chave;
+function renderizarTarefas(tarefas = [], ganhosHoje = 0, limiteDiario = 0) { if (limiteDiario > 0 && ganhosHoje >= limiteDiario) { const chaveTeto = `cap-${ganhosHoje}`; if (taskRenderKey !== chaveTeto) { $("task-list").innerHTML = "<p class='empty-state'>Limite experimental de hoje atingido. A meta diária renova amanhã.</p>"; taskRenderKey = chaveTeto; } return; } const itemAtual = tarefas.find((item)=>!item.resgatada); const chave = itemAtual ? JSON.stringify([itemAtual.id,itemAtual.nome,itemAtual.descricao,itemAtual.recompensaMilliGram,itemAtual.objetivo,itemAtual.pronta]) : (tarefas.length ? "complete" : "empty"); if (chave === window.__taskRenderKey) { if (itemAtual) { const progresso = `${formatar(itemAtual.progresso)} / ${formatar(itemAtual.objetivo)}`; const texto = $("task-list").querySelector(".task-bottom > span:first-child"); if (texto) texto.textContent = progresso; const barra = $("task-list").querySelector(".task-track i"); if (barra) barra.style.width = `${Math.min(100,(itemAtual.progresso/itemAtual.objetivo)*100)}%`; } return; } window.__taskRenderKey = chave;
   if (!Array.isArray(tarefas) || tarefas.length === 0) {
     if (taskRenderKey !== "empty") {
       $("task-list").innerHTML = "<p class='empty-state'>As tarefas não carregaram. Reinicie o backend atualizado.</p>";
@@ -323,15 +331,15 @@ function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)
   }
   const tarefa = atual;
   const chaveRenderizacao = JSON.stringify([
-    tarefa.id, tarefa.nome, tarefa.descricao, tarefa.recompensaPontos,
+    tarefa.id, tarefa.nome, tarefa.descricao, tarefa.recompensaMilliGram,
     tarefa.objetivo, tarefa.pronta
   ]);
   const progresso = `${formatar(tarefa.progresso)} / ${formatar(tarefa.objetivo)}`;
   if (chaveRenderizacao !== taskRenderKey) {
     const acao = tarefa.pronta
-      ? `<button class="task-button ready" onclick="resgatarTarefa('${tarefa.id}')">RESGATAR +${tarefa.recompensaPontos} GRAM</button>`
+      ? `<button class="task-button ready" onclick="resgatarTarefa('${tarefa.id}')">RESGATAR +${formatarMilliGram(tarefa.recompensaMilliGram)} GRAM</button>`
       : `<span class="task-progress">${progresso}</span>`;
-    $("task-list").innerHTML = `<article class="task-card"><div class="task-top"><div><strong>${tarefa.nome}</strong><small>${tarefa.descricao}</small></div><b class="gram-reward">G ${tarefa.recompensaPontos} GRAM</b></div><div class="task-track"><i></i></div><div class="task-bottom"><span class="task-progress-value"></span><span class="task-action">${acao}</span></div></article>`;
+    $("task-list").innerHTML = `<article class="task-card"><div class="task-top"><div><strong>${tarefa.nome}</strong><small>${tarefa.descricao}</small></div><b class="gram-reward">G ${formatarMilliGram(tarefa.recompensaMilliGram)} GRAM</b></div><div class="task-track"><i></i></div><div class="task-bottom"><span class="task-progress-value"></span><span class="task-action">${acao}</span></div></article>`;
     taskRenderKey = chaveRenderizacao;
   }
   $("task-list").querySelector(".task-progress-value").textContent = progresso;
@@ -344,8 +352,16 @@ function atualizarEcra(dados) {
   moedasServidor = Number(dados.moedasVirtuais || 0);
   ultimaConfirmacaoMs = Date.now();
   renderizarSaldoPrevisto();
-  $("pontosBeta").textContent = formatar(dados.pontosBeta);
-  $("pontosBetaDetalhe").textContent = formatar(dados.pontosBeta);
+  $("pontosBeta").textContent = formatarGram(dados.pontosBeta);
+  $("pontosBetaDetalhe").textContent = formatarGram(dados.pontosBeta);
+  const gramBetaGanhosHoje = Number(dados.gramBetaGanhosHoje || 0);
+  const limiteGramBetaDiario = Number(dados.limiteGramBetaDiario ?? 0.03);
+  const minimoSaqueGram = Number(dados.minimoSaqueGram ?? 0.1);
+  $("gramBetaDia").textContent = `Hoje: ${formatarGram(gramBetaGanhosHoje)} / ${formatarGram(limiteGramBetaDiario)} GRAM beta`;
+  const faltaParaMeta = Math.max(0, minimoSaqueGram - Number(dados.pontosBeta || 0));
+  $("metaSaque").textContent = faltaParaMeta > 0
+    ? `Faltam ${formatarGram(faltaParaMeta)} GRAM para a meta mínima experimental.`
+    : "Meta mínima experimental alcançada. Saque real ainda não disponível nesta beta.";
   $("poderClique").textContent = formatar(dados.poderDeMineracaoPorClique);
   $("rendaPassiva").textContent = formatar(dados.rendaPassivaPorSegundo);
   $("custoUpgrade").textContent = formatar(dados.custoProximoUpgrade);
@@ -361,7 +377,7 @@ function atualizarEcra(dados) {
   $("coolingTitle").textContent = dados.pcAquecido ? "PC esquentou" : "PC resfriado";
   $("coolingDescription").textContent = dados.pcAquecido ? "Resfrie para recuperar a renda passiva." : "Resfrie a cada 10 min para manter a renda passiva.";
   renderizarContratados(dados.contratados);
-  renderizarTarefas(dados.tarefas);
+  renderizarTarefas(dados.tarefas, gramBetaGanhosHoje, limiteGramBetaDiario);
 }
 
 function mostrarMoedas(valor) {

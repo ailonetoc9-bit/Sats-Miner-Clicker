@@ -32,7 +32,7 @@ import java.util.Base64;
 public class TelegramBotService {
     private static final Logger log = LoggerFactory.getLogger(TelegramBotService.class);
     private static final String GAME_URL = "https://sats-miner-clicker-production.up.railway.app/";
-    private static final String GAME_WEBAPP_URL = GAME_URL + "?v=20261125-garage-v2";
+    private static final String GAME_WEBAPP_URL = GAME_URL + "?v=20261125-economia-v1";
 
     private final RestClient http = RestClient.create();
     private final String botToken;

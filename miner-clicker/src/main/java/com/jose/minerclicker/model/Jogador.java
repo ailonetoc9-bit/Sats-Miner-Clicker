@@ -36,6 +36,8 @@ public class Jogador {
     // O nome da coluna mantém compatibilidade com os saldos já gravados antes da beta de pontos.
     @Column(name = "saldo_satoshis_acumulados")
     private long pontosBeta;
+    @Column(name = "gram_beta_hoje", nullable = false, columnDefinition = "bigint default 0")
+    private long gramBetaGanhosHoje;
     private LocalDate ultimoDiaJogado;
 
     // Variáveis de Monetização (Anúncios)
@@ -80,6 +82,7 @@ public class Jogador {
         this.moedasVirtuais = 0;
         this.ultimaSincronizacao = LocalDateTime.now();
         this.pontosBeta = 0;
+        this.gramBetaGanhosHoje = 0;
         this.ultimoDiaJogado = LocalDate.now();
         this.ultimoResfriamento = LocalDateTime.now();
         this.bonusDobroAte = null;
@@ -120,6 +123,9 @@ public class Jogador {
 
     public long getPontosBeta() { return pontosBeta; }
     public void setPontosBeta(long pontosBeta) { this.pontosBeta = Math.max(0, pontosBeta); }
+
+    public long getGramBetaGanhosHoje() { return gramBetaGanhosHoje; }
+    public void setGramBetaGanhosHoje(long valor) { this.gramBetaGanhosHoje = Math.max(0, valor); }
 
     public LocalDate getUltimoDiaJogado() { return ultimoDiaJogado; }
     public void setUltimoDiaJogado(LocalDate ultimoDiaJogado) { this.ultimoDiaJogado = ultimoDiaJogado; }

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261125-garage-v2">
+  <link rel="stylesheet" href="style.css?v=20261125-economia-v1">
 </head>
 <body>
   <div id="game-container">
@@ -55,7 +55,7 @@
       <section class="tab-panel hidden" id="painel-tarefas"><div class="panel-heading"><div><span class="eyebrow">CUMPRA TAREFAS E GANHE GRAM</span><h2>Tarefas</h2></div><span class="panel-decoration">🎯</span></div><div id="task-list" class="dynamic-list"></div></section>
       <section class="tab-panel hidden" id="painel-pontos">
         <div class="panel-heading"><div><span class="eyebrow">RECOMPENSAS DA BETA</span><h2>GRAM</h2></div><span class="panel-decoration">G</span></div>
-        <div class="wallet-summary"><span>Seu saldo GRAM beta</span><strong><span id="pontosBetaDetalhe">0</span> <small>GRAM</small></strong><p>Este saldo é de teste: ainda não está na blockchain TON, não pode ser transferido e não pode ser sacado. A integração com carteira será feita em uma etapa futura.</p></div>
+        <div class="wallet-summary"><span>Seu saldo GRAM beta</span><strong><span id="pontosBetaDetalhe">0,000</span> <small>GRAM</small></strong><p>Saldo experimental, sem valor monetário e sem saque real nesta beta. Meta planejada para uma futura carteira: 0,100 GRAM. A ideia é destinar até 50% da receita líquida de anúncios aos jogadores, mas essa distribuição ainda não está ligada à receita real da Monetag.</p><div class="gram-beta-progress"><span id="gramBetaDia">Hoje: 0,000 / 0,030 GRAM beta</span><span id="metaSaque">Faltam 0,100 GRAM para a meta mínima experimental.</span></div></div>
       </section>
       <section id="bonus-card" class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button id="botaoAnuncioDobrar" type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
       <section id="cooling-card" class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button id="botaoAnuncioResfriar" type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
@@ -75,6 +75,6 @@
     </div>
   </div>
   <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
-  <script src="app.js?v=20261125-garage-v2"></script>
+  <script src="app.js?v=20261125-economia-v1"></script>
 </body>
 </html>

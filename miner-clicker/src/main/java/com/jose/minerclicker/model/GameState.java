@@ -1,10 +1,14 @@
 package com.jose.minerclicker.model;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record GameState(
         long moedasVirtuais,
-        long pontosBeta,
+        BigDecimal pontosBeta,
+        BigDecimal gramBetaGanhosHoje,
+        BigDecimal limiteGramBetaDiario,
+        BigDecimal minimoSaqueGram,
         int poderDeMineracaoPorClique,
         long rendaPassivaPorSegundo,
         int nivelGaragem,
@@ -19,7 +23,7 @@ public record GameState(
         List<ContratadoView> contratados) {
 
     public record TarefaView(String id, String nome, String descricao, long progresso, long objetivo,
-                             int recompensaPontos, boolean resgatada, boolean pronta) {}
+                             int recompensaMilliGram, boolean resgatada, boolean pronta) {}
 
     public record ContratadoView(String id, String nome, int nivel, long custo, long rendaPorSegundo,
                                  long rendaProximoNivel, int proximoMarco) {}

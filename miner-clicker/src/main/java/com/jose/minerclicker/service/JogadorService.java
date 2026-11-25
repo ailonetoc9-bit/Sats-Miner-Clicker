@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,9 @@ public class JogadorService {
     private static final double CLIQUES_POR_SEGUNDO = 20.0;
     private static final double RESERVA_MAXIMA_CLIQUES = 60.0;
     private static final int INTERVALO_MINIMO_ANUNCIOS_SEGUNDOS = 8;
+    // Valores internos em milliGRAM: 30 = 0,030 GRAM por dia; tarefas somam 27 milliGRAM por ciclo.
+    private static final long LIMITE_GRAM_BETA_DIARIO_MILLIGRAM = 30;
+    private static final long MINIMO_SAQUE_GRAM_MILLIGRAM = 100;
     private static final int[] MARCOS_CONTRATADOS = {10, 25, 50};
     private static final String[][] UPGRADES = {
             {"Teclado mecânico", "Teclas mais rápidas para minerar", "⌨️"},
@@ -35,6 +39,7 @@ public class JogadorService {
             {"Cadeira gamer", "Conforto para longas sessões", "🪑"}
     };
 
+    // Recompensas em milliGRAM (0,001 GRAM); um ciclo soma 0,027 GRAM antes do teto diário.
     private static final List<TaskDefinition> TAREFAS = List.of(
             new TaskDefinition("cliques", "Mãos à obra", "Dê 100 cliques na garagem", "cliques", 100, 2),
             new TaskDefinition("moedas", "Primeiros ganhos", "Ganhe 500 moedas do jogo", "moedas", 500, 2),
@@ -130,9 +135,13 @@ public class JogadorService {
         long objetivo = objetivoTarefa(tarefa, jogador.getCiclosTarefas().getOrDefault(tarefa.id(), 0));
         if (jogador.getTarefasResgatadas().contains(tarefaId)) throw new IllegalStateException("Essa tarefa já foi resgatada hoje.");
         if (progresso < objetivo) throw new IllegalStateException("Conclua a tarefa antes de resgatar a recompensa.");
+        long restanteHoje = Math.max(0, LIMITE_GRAM_BETA_DIARIO_MILLIGRAM - jogador.getGramBetaGanhosHoje());
+        if (restanteHoje == 0) throw new IllegalStateException("O limite diário de recompensas beta foi atingido.");
         jogador.getTarefasResgatadas().add(tarefaId);
         jogador.getProgressoTarefas().put(tarefa.chaveProgresso(), 0L);
-        jogador.setPontosBeta(somarSemOverflow(jogador.getPontosBeta(), tarefa.recompensa()));
+        long recompensa = Math.min(tarefa.recompensa(), restanteHoje);
+        jogador.setPontosBeta(somarSemOverflow(jogador.getPontosBeta(), recompensa));
+        jogador.setGramBetaGanhosHoje(somarSemOverflow(jogador.getGramBetaGanhosHoje(), recompensa));
         if (jogador.getTarefasResgatadas().size() == TAREFAS.size()) {
             jogador.getTarefasResgatadas().clear();
             jogador.getProgressoTarefas().clear();
@@ -222,6 +231,7 @@ public class JogadorService {
             jogador.setUltimoDiaJogado(hoje);
             jogador.getProgressoTarefas().clear();
             jogador.getTarefasResgatadas().clear();
+            jogador.setGramBetaGanhosHoje(0);
         }
     }
 
@@ -359,8 +369,10 @@ public class JogadorService {
             long objetivo = objetivoTarefa(tarefa, jogador.getCiclosTarefas().getOrDefault(tarefa.id(), 0));
             boolean resgatada = jogador.getTarefasResgatadas().contains(tarefa.id());
             String descricao = tarefa.descricao().replaceFirst("\\d+", Long.toString(objetivo));
+            int recompensaDisponivel = (int) Math.min(tarefa.recompensa(),
+                    Math.max(0, LIMITE_GRAM_BETA_DIARIO_MILLIGRAM - jogador.getGramBetaGanhosHoje()));
             tarefas.add(new GameState.TarefaView(tarefa.id(), tarefa.nome(), descricao,
-                    Math.min(progresso, objetivo), objetivo, tarefa.recompensa(),
+                    Math.min(progresso, objetivo), objetivo, recompensaDisponivel,
                     resgatada, progresso >= objetivo && !resgatada));
         }
         List<GameState.ContratadoView> contratados = new ArrayList<>();
@@ -372,10 +384,16 @@ public class JogadorService {
                     custoContratado(i, nivel), rendaContratado(i, nivel), rendaContratado(i, nivel + 1), proximoMarco));
         }
         String[] upgrade = proximoUpgrade(jogador);
-        return new GameState(jogador.getMoedasVirtuais(), jogador.getPontosBeta(),
+        return new GameState(jogador.getMoedasVirtuais(), decimalGram(jogador.getPontosBeta()),
+                decimalGram(jogador.getGramBetaGanhosHoje()), decimalGram(LIMITE_GRAM_BETA_DIARIO_MILLIGRAM),
+                decimalGram(MINIMO_SAQUE_GRAM_MILLIGRAM),
                 jogador.getPoderDeMineracaoPorClique(), jogador.getRendaPassivaPorSegundo(),
                 jogador.getNivelGaragem(), bonusDobroAtivo(jogador, agora), pcAquecido(jogador, agora),
                 custoProximoUpgrade(jogador), upgrade[0], upgrade[1], bonusProximoUpgrade(jogador), upgrade[2], tarefas, contratados);
+    }
+
+    private BigDecimal decimalGram(long milliGram) {
+        return BigDecimal.valueOf(milliGram, 3);
     }
 
     private record TaskDefinition(String id, String nome, String descricao, String chaveProgresso,
