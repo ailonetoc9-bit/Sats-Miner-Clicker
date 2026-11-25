@@ -51,6 +51,10 @@ footer a{color:#6e765f;font-size:10px;letter-spacing:0;text-decoration:underline
 .tutorial-next{margin-left:auto;background:#397454;color:white}
 #game-container.tutorial-active{pointer-events:auto}
 .tutorial-target{position:relative;outline:3px solid #f5c956!important;outline-offset:3px;box-shadow:0 0 0 7px #f5c95655!important;border-radius:14px!important}
+/* Novo cenário de garagem, com o jogador em destaque no primeiro plano. */
+#palco-jogo{background-image:url('brand/miner-club-garage-v2.jpg');background-position:center;background-size:cover}
+#palco-jogo:before{inset:62% 0 0;background:linear-gradient(transparent,rgba(37,43,32,.08))}
+.click-label{top:10px;bottom:auto;left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100% - 20px);padding:7px 10px;border-radius:999px;background:rgba(37,48,40,.62);font-size:8px;letter-spacing:.12em;white-space:nowrap}
 @media(max-height:620px){.tutorial-overlay{padding-top:8px;padding-bottom:8px}.tutorial-dialog{min-height:0;max-height:76vh;padding:15px}.tutorial-progress{margin-bottom:10px}.tutorial-text{font-size:13px;margin:7px 0 0}}
 .room-stats{grid-template-columns:1fr}.room-stats .stat-card strong{font:600 12px 'DM Sans',sans-serif}
 .gram-card .wallet-icon{background:linear-gradient(145deg,#48d6c1,#087f91);color:#fff;box-shadow:inset 0 -3px 0 #066b79;font:700 21px Fredoka;text-shadow:0 1px 2px #075a63}

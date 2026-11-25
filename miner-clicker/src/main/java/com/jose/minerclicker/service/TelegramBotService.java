@@ -32,6 +32,7 @@ import java.util.Base64;
 public class TelegramBotService {
     private static final Logger log = LoggerFactory.getLogger(TelegramBotService.class);
     private static final String GAME_URL = "https://sats-miner-clicker-production.up.railway.app/";
+    private static final String GAME_WEBAPP_URL = GAME_URL + "?v=20261125-garage-v2";
 
     private final RestClient http = RestClient.create();
     private final String botToken;
@@ -80,6 +81,7 @@ public class TelegramBotService {
         setBotIdentity();
         setProfilePhoto();
         setCommands();
+        setMenuButton();
         try {
             JsonNode response = http.post()
                     .uri("https://api.telegram.org/bot{token}/setWebhook", botToken)
@@ -146,6 +148,26 @@ public class TelegramBotService {
         }
     }
 
+    private void setMenuButton() {
+        try {
+            JsonNode response = http.post()
+                    .uri("https://api.telegram.org/bot{token}/setChatMenuButton", botToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("menu_button", Map.of(
+                            "type", "web_app",
+                            "text", "Jogar",
+                            "web_app", Map.of("url", GAME_WEBAPP_URL)
+                    )))
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (!telegramOk(response)) {
+                log.warn("Telegram Mini App menu button was not updated: {}", telegramDescription(response));
+            }
+        } catch (Exception error) {
+            log.warn("Could not update Telegram Mini App menu button: {}", safeError(error));
+        }
+    }
+
     private void setProfilePhoto() {
         try (InputStream encodedImage = new ClassPathResource("static/brand/miner-club-logo.png.b64").getInputStream()) {
             byte[] png = Base64.getDecoder().decode(encodedImage.readAllBytes());
@@ -192,7 +214,7 @@ public class TelegramBotService {
 
         Map<String, Object> keyboard = Map.of("inline_keyboard", List.of(List.of(Map.of(
                 "text", "⛏️ Jogar Miner Club",
-                "web_app", Map.of("url", GAME_URL)
+                "web_app", Map.of("url", GAME_WEBAPP_URL)
         ))));
         try {
             http.post()
