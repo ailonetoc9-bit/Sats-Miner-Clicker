@@ -18,9 +18,6 @@ import java.util.Map;
 public class JogadorService {
 
     private final JogadorRepository repository;
-    private static final int MAX_SATOSHI_SAQUE_DIA = 100;
-    private static final int SATS_LIBERADOS_POR_MINUTO = 2;
-    private static final int SEGUNDOS_POR_MINUTO = 60;
     private static final int TEMPO_PARA_SUPERAQUECER_SEGUNDOS = 600;
     private static final int SEGUNDOS_MAX_POR_SYNC_ATIVO = 15;
     private static final double CLIQUES_POR_SEGUNDO = 20.0;
@@ -74,7 +71,6 @@ public class JogadorService {
         prepararDia(jogador, agora.toLocalDate());
 
         long segundosPassados = segundosDesdeUltimaSync(jogador, agora);
-        int segundosAtivos = (int) Math.min(segundosPassados, SEGUNDOS_MAX_POR_SYNC_ATIVO);
         long moedasPassivas = calcularRenda(jogador, segundosPassados, agora, true);
         int cliquesValidos = limitarCliques(jogador, cliquesEnviados, agora);
         long multiplicador = bonusDobroAtivo(jogador, agora) ? 2L : 1L;
@@ -86,11 +82,7 @@ public class JogadorService {
         incrementarTarefa(jogador, "moedas", moedasGanhos);
         incrementarTarefa(jogador, "passivo", moedasPassivas);
 
-        jogador.setTempoAtivoHojeSegundos(jogador.getTempoAtivoHojeSegundos() + segundosAtivos);
         jogador.setSegundosPcAtivoDesdeResfriamento(jogador.getSegundosPcAtivoDesdeResfriamento() + segundosPassados);
-        int satsLiberados = Math.min(MAX_SATOSHI_SAQUE_DIA,
-                (int) (jogador.getTempoAtivoHojeSegundos() / SEGUNDOS_POR_MINUTO) * SATS_LIBERADOS_POR_MINUTO);
-        jogador.setSatoshisLiberadosHoje(satsLiberados);
         // Avança apenas os segundos já contabilizados; preserva a fração restante entre sincronizações.
         jogador.setUltimaSincronizacao(jogador.getUltimaSincronizacao().plusSeconds(segundosPassados));
         return criarEstado(repository.save(jogador));
@@ -140,9 +132,7 @@ public class JogadorService {
         if (progresso < objetivo) throw new IllegalStateException("Conclua a tarefa antes de resgatar a recompensa.");
         jogador.getTarefasResgatadas().add(tarefaId);
         jogador.getProgressoTarefas().put(tarefa.chaveProgresso(), 0L);
-        jogador.setSaldoSatoshisAcumulados(somarSemOverflow(jogador.getSaldoSatoshisAcumulados(), tarefa.recompensa()));
-        jogador.setSatoshisGanhosHoje((int) Math.min(Integer.MAX_VALUE,
-                (long) jogador.getSatoshisGanhosHoje() + tarefa.recompensa()));
+        jogador.setPontosBeta(somarSemOverflow(jogador.getPontosBeta(), tarefa.recompensa()));
         if (jogador.getTarefasResgatadas().size() == TAREFAS.size()) {
             jogador.getTarefasResgatadas().clear();
             jogador.getProgressoTarefas().clear();
@@ -171,28 +161,6 @@ public class JogadorService {
         return criarEstado(repository.save(jogador));
     }
 
-    public GameState ganharTokenSaque(String telegramId) {
-        Jogador jogador = encontrarComBloqueio(telegramId);
-        sincronizarAntesDaAcao(jogador);
-        jogador.setTokensDeSaque(jogador.getTokensDeSaque() + 1);
-        return criarEstado(repository.save(jogador));
-    }
-
-    public GameState realizarSaque(String telegramId, int valorSats) {
-        Jogador jogador = encontrarComBloqueio(telegramId);
-        sincronizarAntesDaAcao(jogador);
-        int liberadosAindaHoje = Math.max(0, jogador.getSatoshisLiberadosHoje() - jogador.getSatoshisSacadosHoje());
-        long disponiveis = Math.min(jogador.getSaldoSatoshisAcumulados(), liberadosAindaHoje);
-        if (valorSats <= 0 || valorSats > disponiveis || valorSats > MAX_SATOSHI_SAQUE_DIA - jogador.getSatoshisSacadosHoje())
-            throw new IllegalStateException("Esse valor ainda não está liberado para saque.");
-        if (jogador.getTokensDeSaque() < 1) throw new IllegalStateException("Ganhe um token de saque assistindo a um anúncio.");
-        jogador.setSaldoSatoshisAcumulados(jogador.getSaldoSatoshisAcumulados() - valorSats);
-        jogador.setSatoshisSacadosHoje(jogador.getSatoshisSacadosHoje() + valorSats);
-        jogador.setTokensDeSaque(jogador.getTokensDeSaque() - 1);
-        // O envio de satoshis permanece fictício nesta primeira versão.
-        return criarEstado(repository.save(jogador));
-    }
-
     private void processarRendaOffline(Jogador jogador, LocalDateTime agora) {
         prepararDia(jogador, agora.toLocalDate());
         long segundos = segundosDesdeUltimaSync(jogador, agora);
@@ -208,10 +176,7 @@ public class JogadorService {
         long segundos = Math.min(segundosDesdeUltimaSync(jogador, agora), SEGUNDOS_MAX_POR_SYNC_ATIVO);
         long moedasPassivas = calcularRenda(jogador, segundos, agora, true);
         jogador.setMoedasVirtuais(somarSemOverflow(jogador.getMoedasVirtuais(), moedasPassivas));
-        jogador.setTempoAtivoHojeSegundos(jogador.getTempoAtivoHojeSegundos() + segundos);
         jogador.setSegundosPcAtivoDesdeResfriamento(jogador.getSegundosPcAtivoDesdeResfriamento() + segundos);
-        jogador.setSatoshisLiberadosHoje(Math.min(MAX_SATOSHI_SAQUE_DIA,
-                (int) (jogador.getTempoAtivoHojeSegundos() / SEGUNDOS_POR_MINUTO) * SATS_LIBERADOS_POR_MINUTO));
         incrementarTarefa(jogador, "moedas", moedasPassivas);
         incrementarTarefa(jogador, "passivo", moedasPassivas);
         // Tentativas repetidas de compra não podem apagar frações de segundo da renda passiva.
@@ -255,10 +220,6 @@ public class JogadorService {
     private void prepararDia(Jogador jogador, LocalDate hoje) {
         if (jogador.getUltimoDiaJogado() == null || !jogador.getUltimoDiaJogado().isEqual(hoje)) {
             jogador.setUltimoDiaJogado(hoje);
-            jogador.setTempoAtivoHojeSegundos(0);
-            jogador.setSatoshisGanhosHoje(0);
-            jogador.setSatoshisLiberadosHoje(0);
-            jogador.setSatoshisSacadosHoje(0);
             jogador.getProgressoTarefas().clear();
             jogador.getTarefasResgatadas().clear();
         }
@@ -411,9 +372,7 @@ public class JogadorService {
                     custoContratado(i, nivel), rendaContratado(i, nivel), rendaContratado(i, nivel + 1), proximoMarco));
         }
         String[] upgrade = proximoUpgrade(jogador);
-        return new GameState(jogador.getMoedasVirtuais(), jogador.getSatoshisGanhosHoje(),
-                jogador.getSaldoSatoshisAcumulados(), jogador.getSatoshisLiberadosHoje(),
-                jogador.getSatoshisSacadosHoje(), jogador.getTokensDeSaque(),
+        return new GameState(jogador.getMoedasVirtuais(), jogador.getPontosBeta(),
                 jogador.getPoderDeMineracaoPorClique(), jogador.getRendaPassivaPorSegundo(),
                 jogador.getNivelGaragem(), bonusDobroAtivo(jogador, agora), pcAquecido(jogador, agora),
                 custoProximoUpgrade(jogador), upgrade[0], upgrade[1], bonusProximoUpgrade(jogador), upgrade[2], tarefas, contratados);

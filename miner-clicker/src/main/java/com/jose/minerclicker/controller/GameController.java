@@ -2,6 +2,7 @@ package com.jose.minerclicker.controller;
 
 import com.jose.minerclicker.model.GameState;
 import com.jose.minerclicker.service.JogadorService;
+import com.jose.minerclicker.service.PrivacyService;
 import com.jose.minerclicker.service.RewardedAdService;
 import com.jose.minerclicker.service.TelegramAuthService;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +15,14 @@ public class GameController {
     private final JogadorService jogadorService;
     private final TelegramAuthService telegramAuth;
     private final RewardedAdService rewardedAdService;
+    private final PrivacyService privacyService;
 
-    public GameController(JogadorService jogadorService, TelegramAuthService telegramAuth, RewardedAdService rewardedAdService) {
+    public GameController(JogadorService jogadorService, TelegramAuthService telegramAuth,
+                          RewardedAdService rewardedAdService, PrivacyService privacyService) {
         this.jogadorService = jogadorService;
         this.telegramAuth = telegramAuth;
         this.rewardedAdService = rewardedAdService;
+        this.privacyService = privacyService;
     }
 
     private TelegramAuthService.Usuario usuario(String initData, String idTeste, String nomeTeste) {
@@ -90,9 +94,10 @@ public class GameController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/sacar")
-    public ResponseEntity<GameState> sacar(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
-            @RequestParam(required = false) String telegramId, @RequestParam int valorSatoshis) {
-        return ResponseEntity.ok(jogadorService.realizarSaque(usuario(initData, telegramId, null).id(), valorSatoshis));
+    @DeleteMapping("/privacy/data")
+    public ResponseEntity<Void> apagarDados(@RequestHeader(value = "X-Telegram-Init-Data", required = false) String initData,
+            @RequestParam(required = false) String telegramId) {
+        privacyService.apagarDadosDoJogador(usuario(initData, telegramId, null).id());
+        return ResponseEntity.noContent().build();
     }
 }

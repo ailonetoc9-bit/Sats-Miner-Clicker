@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface RewardedAdSessionRepository extends JpaRepository<RewardedAdSession, String> {
+    void deleteAllByTelegramId(String telegramId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints(@jakarta.persistence.QueryHint(name = "jakarta.persistence.lock.timeout", value = "5000"))
     @org.springframework.data.jpa.repository.Query("select s from RewardedAdSession s where s.id = :id")

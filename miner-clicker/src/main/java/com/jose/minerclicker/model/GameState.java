@@ -4,11 +4,7 @@ import java.util.List;
 
 public record GameState(
         long moedasVirtuais,
-        int satoshisGanhosHoje,
-        long saldoSatoshisAcumulados,
-        int satoshisLiberadosHoje,
-        int satoshisSacadosHoje,
-        int tokensDeSaque,
+        long pontosBeta,
         int poderDeMineracaoPorClique,
         long rendaPassivaPorSegundo,
         int nivelGaragem,
@@ -23,7 +19,7 @@ public record GameState(
         List<ContratadoView> contratados) {
 
     public record TarefaView(String id, String nome, String descricao, long progresso, long objetivo,
-                             int recompensaSatoshis, boolean resgatada, boolean pronta) {}
+                             int recompensaPontos, boolean resgatada, boolean pronta) {}
 
     public record ContratadoView(String id, String nome, int nivel, long custo, long rendaPorSegundo,
                                  long rendaProximoNivel, int proximoMarco) {}

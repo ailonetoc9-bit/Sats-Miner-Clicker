@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6edcf">
+  <title>Privacidade — Miner Club</title>
+  <style>
+    :root{color-scheme:light;--ink:#26332e;--muted:#66736b;--paper:#f6edcf;--card:#fffdf7;--green:#477a5c;--line:#e8dfca}
+    *{box-sizing:border-box}body{margin:0;padding:24px 16px;background:var(--paper);color:var(--ink);font:16px/1.65 "DM Sans",system-ui,sans-serif}
+    main{max-width:760px;margin:0 auto}.brand{display:flex;align-items:center;gap:12px;margin:0 0 18px}.mark{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--green);color:white;font-weight:800;font-size:23px}.brand small{display:block;color:var(--muted);font-size:12px;letter-spacing:.12em}
+    article{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:clamp(22px,5vw,42px);box-shadow:0 14px 36px #6a573018}h1,h2{line-height:1.2}h1{font-size:clamp(26px,5vw,36px);margin:0 0 8px}h2{font-size:19px;margin:28px 0 8px}.updated,.muted{color:var(--muted)}.notice{padding:14px 16px;margin:20px 0;border-radius:14px;background:#f4efdf;border-left:4px solid #d5a83e}.contact{margin-top:30px;padding-top:18px;border-top:1px solid var(--line)}a{color:var(--green)}code{background:#f3efdf;padding:2px 6px;border-radius:5px}
+  </style>
+</head>
+<body>
+  <main>
+    <header class="brand"><span class="mark">M</span><div><strong>MINER CLUB</strong><small>SUA GARAGEM</small></div></header>
+    <article>
+      <h1>Política de Privacidade</h1>
+      <p class="updated">Última atualização: 25 de novembro de 2026</p>
+      <p>Esta política explica quais dados o Miner Club usa no Mini App do Telegram, por que os usa e como pedir a exclusão. O serviço é operado por um desenvolvedor independente; o Telegram não opera nem endossa o jogo.</p>
+
+      <div class="notice"><strong>Beta:</strong> o saldo exibido como GRAM é apenas demonstrativo para testar o jogo. Ainda não é um token na blockchain TON, não tem valor monetário, não pode ser transferido ou sacado e não há promessa de pagamento nesta versão.</div>
+
+      <h2>Dados usados pelo jogo</h2>
+      <ul>
+        <li><strong>Identificação do Telegram:</strong> ID da conta e nome público recebido na autenticação do Mini App, para identificar o perfil do jogo e sincronizar o progresso. O jogo não solicita telefone, contatos, localização ou mensagens.</li>
+        <li><strong>Progresso:</strong> moedas virtuais, upgrades, níveis da equipe, tarefas, saldo GRAM demonstrativo, tempo de jogo e estado dos recursos do jogo.</li>
+        <li><strong>Anúncios:</strong> identificador da sessão de anúncio, tipo solicitado, situação da validação e recompensa do jogo associada. A Monetag carrega seu SDK e pode tratar dados técnicos e eventos de anúncio conforme as próprias políticas.</li>
+        <li><strong>Armazenamento no dispositivo:</strong> uma preferência local indica se o tutorial já foi visto; ela fica no armazenamento do navegador.</li>
+      </ul>
+
+      <h2>Finalidades e serviços envolvidos</h2>
+      <p>Usamos esses dados para autenticar a sessão do Telegram, salvar o progresso, aplicar regras ant abuso, validar recompensas de anúncios e manter o serviço funcionando. O jogo é hospedado na Railway e usa PostgreSQL. Telegram, Railway e Monetag tratam dados segundo seus próprios termos e políticas.</p>
+      <ul>
+        <li><a href="https://telegram.org/privacy" rel="noopener">Política de Privacidade do Telegram</a></li>
+        <li><a href="https://monetag.com/privacy/" rel="noopener">Política de Privacidade da Monetag</a></li>
+        <li><a href="https://railway.com/legal/privacy" rel="noopener">Política de Privacidade da Railway</a></li>
+      </ul>
+
+      <h2>Retenção e exclusão</h2>
+      <p>O progresso fica salvo até você pedir a exclusão ou enquanto for necessário para operar o jogo. Para apagar os dados de jogo e as sessões de anúncios ligados ao seu Telegram, abra o <a href="https://t.me/SatsMinerClubBot">bot do Miner Club</a> e envie <code>/apagar_meus_dados</code>. O bot confirmará quando a exclusão do banco do jogo terminar. Isso não apaga dados que Telegram, Railway ou Monetag mantenham sob suas próprias políticas, cópias de segurança ou obrigações legais.</p>
+
+      <h2>Segurança e alterações</h2>
+      <p>Aplicamos controles de autenticação e acesso ao banco. Nenhum serviço conectado à internet pode garantir segurança absoluta. Se esta política mudar, publicaremos a nova versão nesta página com a data de atualização.</p>
+
+      <div class="contact">
+        <h2>Contato e solicitações</h2>
+        <p>Para dúvidas sobre privacidade ou pedidos relacionados aos seus dados, fale com o responsável pelo Miner Club pelo <a href="https://t.me/SatsMinerClubBot">bot do Miner Club</a>. Você também pode enviar <code>/privacidade</code> para receber este link.</p>
+      </div>
+      <p class="muted"><a href="./">Voltar ao jogo</a></p>
+    </article>
+  </main>
+</body>
+</html>

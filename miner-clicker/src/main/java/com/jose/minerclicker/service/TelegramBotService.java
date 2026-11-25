@@ -37,13 +37,16 @@ public class TelegramBotService {
     private final String botToken;
     private final String webhookUrl;
     private final String webhookSecret;
+    private final PrivacyService privacyService;
 
     public TelegramBotService(
             @Value("${app.telegram.bot-token:}") String botToken,
-            @Value("${app.telegram.webhook-url:https://sats-miner-clicker-production.up.railway.app/api/telegram/webhook}") String webhookUrl) {
+            @Value("${app.telegram.webhook-url:https://sats-miner-clicker-production.up.railway.app/api/telegram/webhook}") String webhookUrl,
+            PrivacyService privacyService) {
         this.botToken = botToken;
         this.webhookUrl = webhookUrl;
         this.webhookSecret = botToken.isBlank() ? "" : sha256(botToken);
+        this.privacyService = privacyService;
     }
 
     public boolean isWebhookSecretValid(String supplied) {
@@ -61,12 +64,20 @@ public class TelegramBotService {
         if (command.equals("/start") || command.equals("/help")) {
             String firstName = message.path("from").path("first_name").asText("").trim();
             sendWelcome(chatId, firstName);
+        } else if (command.equals("/privacidade")) {
+            sendMessage(chatId, "Política de privacidade do Miner Club: " + GAME_URL + "privacidade.html");
+        } else if (command.equals("/apagar_meus_dados")) {
+            String telegramId = message.path("from").path("id").asText("");
+            if (telegramId.isBlank()) return;
+            privacyService.apagarDadosDoJogador(telegramId);
+            sendMessage(chatId, "Os dados de jogo e as sessões de anúncios associados à sua conta foram apagados do banco do Miner Club. Para jogar novamente, abra o Mini App e um novo progresso será criado.");
         }
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void registerWebhook() {
         if (botToken.isBlank() || webhookUrl.isBlank()) return;
+        setBotIdentity();
         setProfilePhoto();
         setCommands();
         try {
@@ -87,14 +98,43 @@ public class TelegramBotService {
         }
     }
 
+    private void setBotIdentity() {
+        try {
+            JsonNode name = http.post().uri("https://api.telegram.org/bot{token}/setMyName", botToken)
+                    .contentType(MediaType.APPLICATION_JSON).body(Map.of("name", "Miner Club"))
+                    .retrieve().body(JsonNode.class);
+            JsonNode description = http.post().uri("https://api.telegram.org/bot{token}/setMyDescription", botToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("description", "Jogo idle de garagem: evolua seu setup, monte uma equipe e acumule GRAM beta."))
+                    .retrieve().body(JsonNode.class);
+            JsonNode shortDescription = http.post().uri("https://api.telegram.org/bot{token}/setMyShortDescription", botToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("short_description", "Construa sua garagem, contrate profissionais e complete tarefas para ganhar GRAM beta."))
+                    .retrieve().body(JsonNode.class);
+            if (!telegramOk(name) || !telegramOk(description) || !telegramOk(shortDescription)) {
+                JsonNode failed = !telegramOk(name) ? name : !telegramOk(description) ? description : shortDescription;
+                log.warn("Telegram bot identity could not be fully updated: {}", telegramDescription(failed));
+            }
+        } catch (Exception error) {
+            log.warn("Could not update Telegram bot identity: {}", safeError(error));
+        }
+    }
+
+    private boolean telegramOk(JsonNode response) { return response != null && response.path("ok").asBoolean(false); }
+    private String telegramDescription(JsonNode response) {
+        return redactToken(response == null ? "empty response" : response.path("description").asText("unknown error"));
+    }
+
     private void setCommands() {
         try {
             JsonNode response = http.post()
                     .uri("https://api.telegram.org/bot{token}/setMyCommands", botToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("commands", List.of(
-                            Map.of("command", "start", "description", "Abrir o Sats Miner Club"),
-                            Map.of("command", "help", "description", "Ver como começar a jogar")
+                            Map.of("command", "start", "description", "Abrir o Miner Club"),
+                            Map.of("command", "help", "description", "Ver como começar a jogar"),
+                            Map.of("command", "privacidade", "description", "Ler a política de privacidade"),
+                            Map.of("command", "apagar_meus_dados", "description", "Apagar seus dados do jogo")
                     )))
                     .retrieve()
                     .body(JsonNode.class);
@@ -107,7 +147,7 @@ public class TelegramBotService {
     }
 
     private void setProfilePhoto() {
-        try (InputStream encodedImage = new ClassPathResource("static/brand/sats-miner-club-logo.png.b64").getInputStream()) {
+        try (InputStream encodedImage = new ClassPathResource("static/brand/miner-club-logo.png.b64").getInputStream()) {
             byte[] png = Base64.getDecoder().decode(encodedImage.readAllBytes());
             BufferedImage source = ImageIO.read(new java.io.ByteArrayInputStream(png));
             BufferedImage rgb = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_RGB);
@@ -121,7 +161,7 @@ public class TelegramBotService {
 
             ByteArrayResource photo = new ByteArrayResource(output.toByteArray()) {
                 @Override
-                public String getFilename() { return "sats-miner-club.jpg"; }
+                public String getFilename() { return "miner-club.jpg"; }
             };
             MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
             form.add("photo", "{\"type\":\"static\",\"photo\":\"attach://profile_photo\"}");
@@ -144,13 +184,14 @@ public class TelegramBotService {
 
     private void sendWelcome(String chatId, String firstName) {
         String greeting = firstName.isBlank() ? "Bem-vindo(a)" : "Olá, " + firstName;
-        String text = greeting + " ao Sats Miner Club! ⛏️\n\n"
-                + "Monte sua garagem de mineração: toque para ganhar moedas, melhore seu setup e contrate profissionais de TI para gerar renda passiva.\n\n"
-                + "Complete tarefas para acumular satoshis no jogo. A cada 10 minutos o PC pode superaquecer; resfrie-o para manter a produção. A carteira e os saques ainda são demonstrativos nesta versão.\n\n"
+        String text = greeting + " ao Miner Club! ⛏️\n\n"
+                + "Monte sua garagem: toque para ganhar moedas, melhore seu setup e contrate profissionais de TI para gerar renda passiva.\n\n"
+                + "Complete tarefas para acumular GRAM beta. Nesta versão o saldo é apenas de teste: ainda não está na blockchain TON e não pode ser transferido ou sacado. A cada 10 minutos o PC pode superaquecer; resfrie-o para manter a produção.\n\n"
+                + "Privacidade: " + GAME_URL + "privacidade.html\n\n"
                 + "Toque abaixo para abrir o jogo. Boa mineração!";
 
         Map<String, Object> keyboard = Map.of("inline_keyboard", List.of(List.of(Map.of(
-                "text", "⛏️ Jogar Sats Miner Club",
+                "text", "⛏️ Jogar Miner Club",
                 "web_app", Map.of("url", GAME_URL)
         ))));
         try {
@@ -162,6 +203,19 @@ public class TelegramBotService {
                     .toBodilessEntity();
         } catch (Exception error) {
             log.warn("Could not send Telegram welcome message: {}", safeError(error));
+        }
+    }
+
+    private void sendMessage(String chatId, String message) {
+        try {
+            http.post()
+                    .uri("https://api.telegram.org/bot{token}/sendMessage", botToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("chat_id", chatId, "text", message))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception error) {
+            log.warn("Could not send Telegram privacy response: {}", safeError(error));
         }
     }
 

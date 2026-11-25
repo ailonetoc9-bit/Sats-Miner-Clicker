@@ -95,7 +95,7 @@ public class RewardedAdService {
             switch (session.getRewardType()) {
                 case DOUBLE -> jogadorService.dobrarGanhos(session.getTelegramId());
                 case COOL -> jogadorService.resfriarPC(session.getTelegramId());
-                case WITHDRAWAL_TOKEN -> jogadorService.ganharTokenSaque(session.getTelegramId());
+                case WITHDRAWAL_TOKEN -> { /* Sessões antigas de saque não concedem prêmio na beta de pontos. */ }
             }
             session.setStatus(RewardedAdSession.RewardStatus.REWARDED);
         } else if ("non_valued".equals(rewardEventType)) {
@@ -119,7 +119,6 @@ public class RewardedAdService {
         return switch (tipo) {
             case "dobrar" -> RewardedAdSession.RewardType.DOUBLE;
             case "resfriar" -> RewardedAdSession.RewardType.COOL;
-            case "saque" -> RewardedAdSession.RewardType.WITHDRAWAL_TOKEN;
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de anúncio inválido.");
         };
     }

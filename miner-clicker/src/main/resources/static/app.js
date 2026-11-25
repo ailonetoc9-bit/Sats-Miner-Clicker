@@ -1,6 +1,7 @@
-// Identificação temporária. O Telegram poderá fornecer esses dados ao abrir o jogo.
-const TELEGRAM_ID = "123456789";
-const NOME = "JoseAilo";
+// Use os dados da sessão autenticada do Telegram; o modo local usa o jogador de teste do backend.
+const TELEGRAM_USER = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
+const TELEGRAM_ID = String(TELEGRAM_USER.id || "");
+const NOME = [TELEGRAM_USER.first_name, TELEGRAM_USER.last_name].filter(Boolean).join(" ") || "Jogador";
 const TELEGRAM_INIT_DATA = window.Telegram?.WebApp?.initData || "";
 const API_BASE = window.GAME_API_BASE || (location.protocol === "file:" ? "http://localhost:8080/api/game" : `${location.origin}/api/game`);
 let cliquesAcumulados = 0;
@@ -22,16 +23,15 @@ let erroInicializacaoAnuncios = null;
 const INTERVALO_INTERSTITIAL_SEGUNDOS = 5 * 60;
 const MAX_INTERSTITIALS_POR_HORA = 12;
 const PASSOS_TUTORIAL = [
-  { titulo: "Bem-vindo ao Miner Club!", texto: "Aqui você evolui sua garagem, monta uma equipe e cumpre tarefas para juntar satoshis. Vamos conhecer cada parte do jogo.", alvo: null },
-  { titulo: "Comece minerando moedas", texto: "Cada clique no cenário rende 1 moeda no início. Seu saldo fica no alto da tela; você também pode aumentá-lo com upgrades e renda passiva.", alvo: "#palco-jogo" },
+  { titulo: "Bem-vindo ao Miner Club!", texto: "Aqui você evolui sua garagem, monta uma equipe e cumpre tarefas para acumular GRAM beta. Nesta fase, esse saldo é apenas de teste: ainda não está na blockchain TON e não pode ser transferido ou sacado.", alvo: null },
+  { titulo: "Comece ganhando moedas", texto: "Cada clique no cenário rende 1 moeda no início. Seu saldo fica no alto da tela; você também pode aumentá-lo com upgrades e renda passiva.", alvo: "#palco-jogo" },
   { titulo: "Evolua seu setup", texto: "Use moedas para comprar upgrades como teclado, mesa, monitor e placa de vídeo. Cada melhoria aumenta o ganho por clique; o preço e o bônus aparecem nesta seção.", aba: "loja", alvo: "#painel-loja" },
   { titulo: "Monte sua equipe", texto: "Contrate profissionais e compre novos níveis para aumentar a renda passiva. Eles produzem moedas enquanto você joga e também enquanto está fora; ao voltar, os ganhos offline são contabilizados.", aba: "equipe", alvo: "#painel-equipe" },
-  { titulo: "Complete tarefas para juntar sats", texto: "Você verá uma tarefa por vez. Cumpra metas de cliques, moedas, renda passiva, upgrades ou níveis de contratados e resgate a recompensa de 2 a 8 sats. Depois, novas metas aparecem e as tarefas se repetem.", aba: "tarefas", alvo: "#painel-tarefas" },
-  { titulo: "Confira sua carteira", texto: "Os sats resgatados nas tarefas ficam acumulados no seu saldo. A ideia é permitir saques para uma carteira real, mas nesta versão o saque ainda é fictício. O limite diário é de até 100 sats liberados; seu saldo acumulado pode passar disso.", aba: "saque", alvo: "#painel-saque" },
+  { titulo: "Complete tarefas e ganhe GRAM", texto: "Você verá uma tarefa por vez. Cumpra metas de cliques, moedas, renda passiva, upgrades ou níveis de contratados e resgate de 2 a 8 GRAM beta. As tarefas se repetem com metas variadas. Nesta beta, o saldo ainda não é um token na blockchain TON e não pode ser transferido ou sacado.", aba: "tarefas", alvo: "#painel-tarefas" },
+  { titulo: "Acompanhe seu GRAM beta", texto: "O saldo GRAM beta fica acumulado no seu perfil para testar o progresso do jogo. A integração com carteira TON e os saques ainda não estão habilitados.", aba: "pontos", alvo: "#painel-pontos" },
   { titulo: "Mantenha o PC resfriado", texto: "A cada 10 minutos jogando, o PC superaquece e a renda passiva cai para 10%. Toque em Resfriar e assista ao anúncio para voltar à renda normal. Os ganhos offline são calculados quando você retorna.", aba: "loja", alvo: "#cooling-card", posicao: "topo" },
-  { titulo: "Libere sats ao longo do tempo", texto: "Com o jogo aberto, 2 sats por minuto são liberados para saque se você já tiver sats acumulados. São liberados até 100 por dia. Não há contador na tela; o saldo liberado aparece aqui.", alvo: ".room-stats" },
   { titulo: "Anúncios e dobro de ganhos", texto: "Se quiser, assista a um anúncio no botão Ganhe em dobro para duplicar moedas por 10 minutos. Além dos anúncios solicitados pelos botões, a Monetag pode exibir um anúncio automático a cada 5 minutos enquanto o Mini App estiver aberto no Telegram.", aba: "loja", alvo: ["#bonus-card", "#cooling-card"], posicao: "topo" },
-  { titulo: "Pronto para começar!", texto: "Agora é com você: clique para minerar, invista na garagem, fortaleça a equipe e resgate suas tarefas. Se quiser rever este guia, toque em Ajuda no topo da tela.", alvo: null }
+  { titulo: "Pronto para começar!", texto: "Agora é com você: clique para ganhar moedas, invista na garagem, fortaleça a equipe e conclua tarefas para acumular GRAM beta. Se quiser rever este guia, toque em Ajuda no topo da tela.", alvo: null }
 ];
 let passoTutorialAtual = 0;
 
@@ -279,7 +279,7 @@ async function comprarContratado(id) {
 }
 
 async function resgatarTarefa(id) {
-  try { atualizarEcra(await requisitar("/tarefas/resgatar", { telegramId: TELEGRAM_ID, tarefaId: id })); mostrarToast("Satoshis adicionados ao seu saldo!"); }
+  try { atualizarEcra(await requisitar("/tarefas/resgatar", { telegramId: TELEGRAM_ID, tarefaId: id })); mostrarToast("GRAM beta adicionado ao seu saldo!"); }
   catch (erro) { mostrarToast(erro.message); }
 }
 
@@ -289,17 +289,6 @@ async function verAnuncioDobrar() {
 
 async function verAnuncioResfriar() {
   return assistirAnuncio("resfriar", "cool_pc", "botaoAnuncioResfriar", "Anúncio assistido, prêmio resgatado. PC resfriado!");
-}
-
-async function verAnuncioSaque() {
-  return assistirAnuncio("saque", "withdrawal_token", "botaoAnuncioSaque", "Anúncio assistido, prêmio resgatado. Token de saque liberado!");
-}
-
-async function sacarSatoshis(valor) {
-  const quantia = Number(valor ?? $("valorSaque").value);
-  if (!Number.isInteger(quantia) || quantia < 1) return mostrarToast("Informe uma quantidade válida de sats.");
-  try { atualizarEcra(await requisitar("/sacar", { telegramId: TELEGRAM_ID, valorSatoshis: quantia })); mostrarToast(`${quantia} sats retirados (saque fictício).`); }
-  catch (erro) { mostrarToast(erro.message || "Confira os sats liberados e seu token de saque."); }
 }
 
 function renderizarContratados(contratados = []) {
@@ -316,7 +305,7 @@ function renderizarContratados(contratados = []) {
   }).join("");
 }
 
-function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)=>!item.resgatada); const chave = itemAtual ? JSON.stringify([itemAtual.id,itemAtual.nome,itemAtual.descricao,itemAtual.recompensaSatoshis,itemAtual.objetivo,itemAtual.pronta]) : (tarefas.length ? "complete" : "empty"); if (chave === window.__taskRenderKey) { if (itemAtual) { const progresso = `${formatar(itemAtual.progresso)} / ${formatar(itemAtual.objetivo)}`; const texto = $("task-list").querySelector(".task-bottom > span:first-child"); if (texto) texto.textContent = progresso; const barra = $("task-list").querySelector(".task-track i"); if (barra) barra.style.width = `${Math.min(100,(itemAtual.progresso/itemAtual.objetivo)*100)}%`; } return; } window.__taskRenderKey = chave;
+function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)=>!item.resgatada); const chave = itemAtual ? JSON.stringify([itemAtual.id,itemAtual.nome,itemAtual.descricao,itemAtual.recompensaPontos,itemAtual.objetivo,itemAtual.pronta]) : (tarefas.length ? "complete" : "empty"); if (chave === window.__taskRenderKey) { if (itemAtual) { const progresso = `${formatar(itemAtual.progresso)} / ${formatar(itemAtual.objetivo)}`; const texto = $("task-list").querySelector(".task-bottom > span:first-child"); if (texto) texto.textContent = progresso; const barra = $("task-list").querySelector(".task-track i"); if (barra) barra.style.width = `${Math.min(100,(itemAtual.progresso/itemAtual.objetivo)*100)}%`; } return; } window.__taskRenderKey = chave;
   if (!Array.isArray(tarefas) || tarefas.length === 0) {
     if (taskRenderKey !== "empty") {
       $("task-list").innerHTML = "<p class='empty-state'>As tarefas não carregaram. Reinicie o backend atualizado.</p>";
@@ -334,15 +323,15 @@ function renderizarTarefas(tarefas = []) { const itemAtual = tarefas.find((item)
   }
   const tarefa = atual;
   const chaveRenderizacao = JSON.stringify([
-    tarefa.id, tarefa.nome, tarefa.descricao, tarefa.recompensaSatoshis,
+    tarefa.id, tarefa.nome, tarefa.descricao, tarefa.recompensaPontos,
     tarefa.objetivo, tarefa.pronta
   ]);
   const progresso = `${formatar(tarefa.progresso)} / ${formatar(tarefa.objetivo)}`;
   if (chaveRenderizacao !== taskRenderKey) {
     const acao = tarefa.pronta
-      ? `<button class="task-button ready" onclick="resgatarTarefa('${tarefa.id}')">RESGATAR +${tarefa.recompensaSatoshis} SATS</button>`
+      ? `<button class="task-button ready" onclick="resgatarTarefa('${tarefa.id}')">RESGATAR +${tarefa.recompensaPontos} GRAM</button>`
       : `<span class="task-progress">${progresso}</span>`;
-    $("task-list").innerHTML = `<article class="task-card"><div class="task-top"><div><strong>${tarefa.nome}</strong><small>${tarefa.descricao}</small></div><b>◈ ${tarefa.recompensaSatoshis} sats</b></div><div class="task-track"><i></i></div><div class="task-bottom"><span class="task-progress-value"></span><span class="task-action">${acao}</span></div></article>`;
+    $("task-list").innerHTML = `<article class="task-card"><div class="task-top"><div><strong>${tarefa.nome}</strong><small>${tarefa.descricao}</small></div><b class="gram-reward">G ${tarefa.recompensaPontos} GRAM</b></div><div class="task-track"><i></i></div><div class="task-bottom"><span class="task-progress-value"></span><span class="task-action">${acao}</span></div></article>`;
     taskRenderKey = chaveRenderizacao;
   }
   $("task-list").querySelector(".task-progress-value").textContent = progresso;
@@ -355,16 +344,10 @@ function atualizarEcra(dados) {
   moedasServidor = Number(dados.moedasVirtuais || 0);
   ultimaConfirmacaoMs = Date.now();
   renderizarSaldoPrevisto();
-  $("satoshisAcumulados").textContent = formatar(dados.saldoSatoshisAcumulados);
-  $("satoshisLiberados").textContent = formatar(dados.satoshisLiberadosHoje);
+  $("pontosBeta").textContent = formatar(dados.pontosBeta);
+  $("pontosBetaDetalhe").textContent = formatar(dados.pontosBeta);
   $("poderClique").textContent = formatar(dados.poderDeMineracaoPorClique);
   $("rendaPassiva").textContent = formatar(dados.rendaPassivaPorSegundo);
-  $("tokensSaque").textContent = formatar(dados.tokensDeSaque);
-  const liberado = Math.max(0, (dados.satoshisLiberadosHoje || 0) - (dados.satoshisSacadosHoje || 0));
-  const disponivel = Math.min(dados.saldoSatoshisAcumulados || 0, liberado);
-  $("saldoCarteira").textContent = formatar(disponivel);
-  $("valorSaque").max = String(disponivel);
-  if (Number($("valorSaque").value) > disponivel) $("valorSaque").value = String(disponivel || 1);
   $("custoUpgrade").textContent = formatar(dados.custoProximoUpgrade);
   $("nomeUpgrade").textContent = dados.nomeProximoUpgrade;
   $("descricaoUpgrade").textContent = dados.descricaoProximoUpgrade;
@@ -373,7 +356,7 @@ function atualizarEcra(dados) {
   $("boostTitle").textContent = dados.bonusDobroAtivo ? "Dobro de ganhos ativo" : "Ganhe em dobro";
   $("boostDescription").textContent = dados.bonusDobroAtivo ? "Seu anúncio está valendo · bônus por 10 min." : "Anúncio ativa o dobro de ganhos por 10 min.";
   const statusSala = $("roomStatus");
-  statusSala.lastChild.textContent = dados.pcAquecido ? " PC SUPERAQUECIDO" : " MINERANDO";
+  statusSala.lastChild.textContent = dados.pcAquecido ? " PC SUPERAQUECIDO" : " EM ATIVIDADE";
   statusSala.classList.toggle("hot", Boolean(dados.pcAquecido));
   $("coolingTitle").textContent = dados.pcAquecido ? "PC esquentou" : "PC resfriado";
   $("coolingDescription").textContent = dados.pcAquecido ? "Resfrie para recuperar a renda passiva." : "Resfrie a cada 10 min para manter a renda passiva.";
@@ -413,7 +396,7 @@ function marcarTutorialComoVisto() {
 
 function selecionarAba(id) {
   document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === id));
-  ["loja", "equipe", "tarefas", "saque"].forEach((painel) => $("painel-" + painel).classList.toggle("hidden", painel !== id));
+  ["loja", "equipe", "tarefas", "pontos"].forEach((painel) => $("painel-" + painel).classList.toggle("hidden", painel !== id));
 }
 
 function atualizarPassoTutorial() {

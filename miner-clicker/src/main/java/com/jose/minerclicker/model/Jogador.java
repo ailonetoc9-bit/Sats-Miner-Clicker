@@ -22,7 +22,6 @@ public class Jogador {
     private String nome;
 
     private long moedasVirtuais;
-    private int satoshisGanhosHoje;
 
     private int nivelGaragem;
     private int poderDeMineracaoPorClique;
@@ -34,16 +33,13 @@ public class Jogador {
     private LocalDateTime atualizacaoCreditosDeClique;
     private LocalDateTime ultimaSolicitacaoAnuncio;
 
-    // Variáveis de controlo de Satoshis e Tempo
-    private long saldoSatoshisAcumulados;
-    private long tempoAtivoHojeSegundos;
+    // O nome da coluna mantém compatibilidade com os saldos já gravados antes da beta de pontos.
+    @Column(name = "saldo_satoshis_acumulados")
+    private long pontosBeta;
     private LocalDate ultimoDiaJogado;
 
     // Variáveis de Monetização (Anúncios)
     private LocalDateTime ultimoResfriamento;
-    private int tokensDeSaque;
-    private int satoshisLiberadosHoje;
-    private int satoshisSacadosHoje;
     private LocalDateTime bonusDobroAte;
     private long segundosPcAtivoDesdeResfriamento;
 
@@ -82,15 +78,10 @@ public class Jogador {
         this.rendaPassivaPorSegundo = 0;
         this.fracaoMoedasPassivas = 0;
         this.moedasVirtuais = 0;
-        this.satoshisGanhosHoje = 0;
         this.ultimaSincronizacao = LocalDateTime.now();
-        this.saldoSatoshisAcumulados = 0;
-        this.tempoAtivoHojeSegundos = 0;
+        this.pontosBeta = 0;
         this.ultimoDiaJogado = LocalDate.now();
         this.ultimoResfriamento = LocalDateTime.now();
-        this.tokensDeSaque = 0;
-        this.satoshisLiberadosHoje = 0;
-        this.satoshisSacadosHoje = 0;
         this.bonusDobroAte = null;
         this.segundosPcAtivoDesdeResfriamento = 0;
     }
@@ -104,9 +95,6 @@ public class Jogador {
 
     public long getMoedasVirtuais() { return moedasVirtuais; }
     public void setMoedasVirtuais(long moedasVirtuais) { this.moedasVirtuais = moedasVirtuais; }
-
-    public int getSatoshisGanhosHoje() { return satoshisGanhosHoje; }
-    public void setSatoshisGanhosHoje(int satoshisGanhosHoje) { this.satoshisGanhosHoje = satoshisGanhosHoje; }
 
     public int getNivelGaragem() { return nivelGaragem; }
     public void setNivelGaragem(int nivelGaragem) { this.nivelGaragem = nivelGaragem; }
@@ -130,11 +118,8 @@ public class Jogador {
     public LocalDateTime getUltimaSolicitacaoAnuncio() { return ultimaSolicitacaoAnuncio; }
     public void setUltimaSolicitacaoAnuncio(LocalDateTime valor) { this.ultimaSolicitacaoAnuncio = valor; }
 
-    public long getSaldoSatoshisAcumulados() { return saldoSatoshisAcumulados; }
-    public void setSaldoSatoshisAcumulados(long saldoSatoshisAcumulados) { this.saldoSatoshisAcumulados = saldoSatoshisAcumulados; }
-
-    public long getTempoAtivoHojeSegundos() { return tempoAtivoHojeSegundos; }
-    public void setTempoAtivoHojeSegundos(long tempoAtivoHojeSegundos) { this.tempoAtivoHojeSegundos = tempoAtivoHojeSegundos; }
+    public long getPontosBeta() { return pontosBeta; }
+    public void setPontosBeta(long pontosBeta) { this.pontosBeta = Math.max(0, pontosBeta); }
 
     public LocalDate getUltimoDiaJogado() { return ultimoDiaJogado; }
     public void setUltimoDiaJogado(LocalDate ultimoDiaJogado) { this.ultimoDiaJogado = ultimoDiaJogado; }
@@ -143,15 +128,6 @@ public class Jogador {
     public void setUltimoResfriamento(LocalDateTime ultimoResfriamento) { this.ultimoResfriamento = ultimoResfriamento; }
     public long getSegundosPcAtivoDesdeResfriamento() { return segundosPcAtivoDesdeResfriamento; }
     public void setSegundosPcAtivoDesdeResfriamento(long segundos) { this.segundosPcAtivoDesdeResfriamento = Math.max(0, segundos); }
-
-    public int getTokensDeSaque() { return tokensDeSaque; }
-    public void setTokensDeSaque(int tokensDeSaque) { this.tokensDeSaque = tokensDeSaque; }
-
-    public int getSatoshisLiberadosHoje() { return satoshisLiberadosHoje; }
-    public void setSatoshisLiberadosHoje(int valor) { this.satoshisLiberadosHoje = valor; }
-
-    public int getSatoshisSacadosHoje() { return satoshisSacadosHoje; }
-    public void setSatoshisSacadosHoje(int valor) { this.satoshisSacadosHoje = valor; }
 
     public LocalDateTime getBonusDobroAte() { return bonusDobroAte; }
     public void setBonusDobroAte(LocalDateTime valor) { this.bonusDobroAte = valor; }

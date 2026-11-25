@@ -4,68 +4,64 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6edcf">
-  <meta name="description" content="Monte sua garagem de mineração, evolua seu setup, contrate uma equipe e complete tarefas no Sats Miner Club.">
-  <meta property="og:title" content="Sats Miner Club">
-  <meta property="og:description" content="Monte sua garagem, evolua o setup e complete tarefas neste jogo idle de mineração.">
-  <meta property="og:image" content="https://sats-miner-clicker-production.up.railway.app/brand/sats-miner-club-cover.png">
+  <meta name="description" content="Monte sua garagem, evolua seu setup, contrate uma equipe e complete tarefas para ganhar GRAM beta no Miner Club.">
+  <meta property="og:title" content="Miner Club">
+  <meta property="og:description" content="Monte sua garagem, evolua o setup e complete tarefas para ganhar GRAM beta neste jogo idle.">
+  <meta property="og:image" content="https://sats-miner-clicker-production.up.railway.app/brand/miner-club-cover.jpg?v=20261125-gram-beta-v1">
   <meta property="og:type" content="website">
-  <link rel="icon" type="image/png" href="brand/sats-miner-club-logo.png">
-  <title>Sats Miner Club</title>
+  <link rel="icon" type="image/png" href="brand/miner-club-logo.png?v=20261125-gram-beta-v1">
+  <title>Miner Club</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261112-tutorial-4">
+  <link rel="stylesheet" href="style.css?v=20261125-gram-beta-v1">
 </head>
 <body>
   <div id="game-container">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">M</span><div><strong>MINER CLUB</strong><small>SUA GARAGEM</small></div></div>
+      <div class="brand"><span class="brand-mark">M</span><div><strong>MINER CLUB</strong><small>SUA GARAGEM DE TI</small></div></div>
       <button id="botaoTutorial" class="tutorial-help" type="button" aria-label="Ver tutorial do jogo" title="Como jogar"><span aria-hidden="true">?</span> Ajuda</button>
       <div class="online-pill"><i></i> ONLINE</div>
     </header>
 
     <section class="wallet-bar" aria-label="Seus saldos">
-      <div class="wallet-card coin-card"><span class="wallet-icon">₿</span><div><small>MOEDAS</small><strong id="moedas">0</strong></div></div>
-      <div class="wallet-card sat-card"><span class="wallet-icon">◉</span><div><small>SALDO DE SATS</small><strong><span id="satoshisAcumulados">0</span><em> sats</em></strong></div></div>
+      <div class="wallet-card coin-card"><span class="wallet-icon">🟡</span><div><small>MOEDAS</small><strong id="moedas">0</strong></div></div>
+      <div class="wallet-card gram-card"><span class="wallet-icon">G</span><div><small>GRAM BETA</small><strong><span id="pontosBeta">0</span><em> GRAM</em></strong></div></div>
     </section>
 
     <main>
-      <div class="section-heading"><div><span class="eyebrow">SEU CANTINHO</span><h1>Garagem de mineração</h1></div></div>
-      <section class="room-card" aria-label="Cenário da garagem de mineração">
-        <div class="room-topline"><span class="room-live" id="roomStatus"><i></i> MINERANDO</span></div>
-        <button id="palco-jogo" class="clicavel" type="button" aria-label="Clique para minerar moedas">
-          <span class="click-label">TOQUE PARA MINERAR</span>
+      <div class="section-heading"><div><span class="eyebrow">SEU CANTINHO</span><h1>Garagem de tecnologia</h1></div></div>
+      <section class="room-card" aria-label="Cenário da garagem de tecnologia">
+        <div class="room-topline"><span class="room-live" id="roomStatus"><i></i> EM ATIVIDADE</span></div>
+        <button id="palco-jogo" class="clicavel" type="button" aria-label="Clique para ganhar moedas">
+          <span class="click-label">TOQUE PARA GANHAR MOEDAS</span>
           <span id="efeito-clique" aria-hidden="true"></span>
           <span id="floating-layer" aria-hidden="true"></span>
         </button>
         <div class="room-bottom"><span>⛏️ <b id="poderClique">1</b> moeda por toque</span><span>⚡ <b id="rendaPassiva">0</b>/s</span></div>
       </section>
-      <p class="hint"><span>👆</span> Toque no cenário para minerar moedas</p>
+      <p class="hint"><span>👆</span> Toque no cenário para ganhar moedas</p>
 
-      <section class="room-stats" aria-label="Progresso">
-        <div class="stat-card"><span class="stat-icon purple">◈</span><div><small>LIBERADOS HOJE</small><strong id="satoshisLiberados">0</strong></div><span class="stat-unit">/ 100</span></div>
-        <div class="stat-card"><span class="stat-icon orange">⚙</span><div><small>TOKENS DE SAQUE</small><strong id="tokensSaque">0</strong></div><span class="stat-unit">TOKENS</span></div>
+      <section class="room-stats" aria-label="Recompensas da beta">
+        <div class="stat-card"><span class="stat-icon purple">G</span><div><small>RECOMPENSAS DA BETA</small><strong>Complete tarefas e acumule GRAM</strong></div></div>
       </section>
 
-      <nav class="tabs" aria-label="Ações do jogo"><button class="tab active" type="button" data-tab="loja">🛠️ <span>Setup</span></button><button class="tab" type="button" data-tab="equipe">👷 <span>Equipe</span></button><button class="tab" type="button" data-tab="tarefas">🎯 <span>Tarefas</span></button><button class="tab" type="button" data-tab="saque">₿ <span>Carteira</span></button></nav>
+      <nav class="tabs" aria-label="Ações do jogo"><button class="tab active" type="button" data-tab="loja">🛠️ <span>Setup</span></button><button class="tab" type="button" data-tab="equipe">👷 <span>Equipe</span></button><button class="tab" type="button" data-tab="tarefas">🎯 <span>Tarefas</span></button><button class="tab" type="button" data-tab="pontos"><b class="gram-tab-icon">G</b> <span>GRAM</span></button></nav>
       <section class="tab-panel" id="painel-loja">
         <div class="panel-heading"><div><span class="eyebrow">EVOLUA SEU SETUP</span><h2>Oficina</h2></div><span class="panel-decoration">✦</span></div>
         <button class="upgrade-card" type="button" onclick="comprarUpgrade()"><span class="upgrade-art mouse-art" id="iconeUpgrade">⌨️</span><span class="upgrade-copy"><strong id="nomeUpgrade">Teclado mecânico</strong><small id="descricaoUpgrade">Teclas mais rápidas para minerar</small><b>+<span id="bonusUpgrade">1</span> <i>moeda/toque</i></b></span><span class="price-tag">🟡 <span id="custoUpgrade">100</span></span></button>
       </section>
       <section class="tab-panel hidden" id="painel-equipe"><div class="panel-heading"><div><span class="eyebrow">RENDA PASSIVA ONLINE E OFFLINE</span><h2>Contratados</h2></div><span class="panel-decoration">✦</span></div><div id="contractor-list" class="dynamic-list"></div></section>
-      <section class="tab-panel hidden" id="painel-tarefas"><div class="panel-heading"><div><span class="eyebrow">CUMPRA E RESGATE SATS</span><h2>Tarefas diárias</h2></div><span class="panel-decoration">🎯</span></div><div id="task-list" class="dynamic-list"></div></section>
-      <section class="tab-panel hidden" id="painel-saque">
-        <div class="panel-heading"><div><span class="eyebrow">SEU PROGRESSO</span><h2>Carteira</h2></div><span class="panel-decoration">◈</span></div>
-        <div class="wallet-summary"><span>Disponível para sacar agora</span><strong><span id="saldoCarteira">0</span> <small>SATS</small></strong><p>Até 100 sats liberados por dia. O saldo acumulado pode passar desse limite.</p></div>
-        <button id="botaoAnuncioSaque" class="action-button secondary" type="button" onclick="verAnuncioSaque()"><span>🎟️</span><span><strong>Ganhar token de saque</strong><small>Assistir anúncio para liberar</small></span><b>›</b></button>
-        <label class="withdraw-field">Valor do saque<input id="valorSaque" type="number" min="1" max="100" value="2" inputmode="numeric"></label>
-        <button class="action-button cashout" type="button" onclick="sacarSatoshis()"><span>₿</span><span><strong>Sacar sats liberados</strong><small>Usa 1 token de saque · fictício nesta versão</small></span><b>›</b></button>
+      <section class="tab-panel hidden" id="painel-tarefas"><div class="panel-heading"><div><span class="eyebrow">CUMPRA TAREFAS E GANHE GRAM</span><h2>Tarefas</h2></div><span class="panel-decoration">🎯</span></div><div id="task-list" class="dynamic-list"></div></section>
+      <section class="tab-panel hidden" id="painel-pontos">
+        <div class="panel-heading"><div><span class="eyebrow">RECOMPENSAS DA BETA</span><h2>GRAM</h2></div><span class="panel-decoration">G</span></div>
+        <div class="wallet-summary"><span>Seu saldo GRAM beta</span><strong><span id="pontosBetaDetalhe">0</span> <small>GRAM</small></strong><p>Este saldo é de teste: ainda não está na blockchain TON, não pode ser transferido e não pode ser sacado. A integração com carteira será feita em uma etapa futura.</p></div>
       </section>
       <section id="bonus-card" class="boost-card"><span class="boost-icon">✦2</span><div><strong id="boostTitle">Ganhe em dobro</strong><small id="boostDescription">Anúncio ativa o dobro de ganhos por 10 min.</small></div><button id="botaoAnuncioDobrar" type="button" onclick="verAnuncioDobrar()">ATIVAR</button></section>
       <section id="cooling-card" class="cooling-card"><span class="cooling-icon">❄️</span><div><strong id="coolingTitle">PC resfriado</strong><small id="coolingDescription">Resfrie a cada 10 min para manter a renda passiva.</small></div><button id="botaoAnuncioResfriar" type="button" onclick="verAnuncioResfriar()">RESFRIAR</button></section>
       <p id="statusMessage" class="status-message" role="status" aria-live="polite">Conectando à garagem...</p>
     </main>
-    <footer><span>MINER CLUB</span><span>MINERE COM CONSISTÊNCIA ✦</span></footer>
+    <footer><span>MINER CLUB</span><span>EVOLUA SUA GARAGEM ✦</span><a href="privacidade.html">Privacidade</a></footer>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <div id="tutorialOverlay" class="tutorial-overlay hidden" aria-hidden="true">
       <section class="tutorial-dialog" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialText" tabindex="-1">
@@ -79,6 +75,6 @@
     </div>
   </div>
   <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
-  <script src="app.js?v=20261112-tutorial-5-ads-timeout"></script>
+  <script src="app.js?v=20261125-gram-beta-v1"></script>
 </body>
 </html>

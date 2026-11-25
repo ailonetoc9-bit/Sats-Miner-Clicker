@@ -29,9 +29,9 @@ Sem perfil de produção, o backend usa H2 em arquivo (`data/minerdb`) e exige a
 
 ## Antes de oferecer recompensas reais
 
-O servidor limita os cliques aceitos por conta a uma média de 20 por segundo, com uma reserva curta para rajadas, e serializa as alterações de saldo e recompensa por jogador. Isso reduz automação e corridas entre requisições, mas não prova que cada clique veio de uma pessoa. Antes de saques reais, implemente controles antifraude e de pagamento próprios (limites, análise de risco, registro contábil imutável e processamento idempotente) e revise-os com alguém de segurança.
+O servidor limita os cliques aceitos por conta a uma média de 20 por segundo, com uma reserva curta para rajadas, e serializa as alterações de saldo e recompensa por jogador. Isso reduz automação e corridas entre requisições, mas não prova que cada clique veio de uma pessoa. Na beta do Miner Club, o saldo exibido como GRAM é demonstrativo: ainda não está na blockchain TON, não tem valor monetário e não permite transferência ou saque.
 
-Os três botões de recompensa usam o formato Rewarded Interstitial do Monetag. A recompensa só é aplicada depois que o backend recebe a confirmação `valued` do postback e valida uma sessão única; o retorno visual do navegador não concede o prêmio por conta própria. O jogo também agenda um In-App Interstitial automático a cada 5 minutos, com limite de 12 por hora, apenas no Telegram Mini App. Esse formato não libera moedas, sats ou tokens. O saque continua fictício e o saldo atual não é convertido automaticamente em pagamentos.
+Os botões de dobro de ganhos e resfriamento usam o formato Rewarded Interstitial do Monetag. A recompensa só é aplicada depois que o backend recebe a confirmação `valued` do postback e valida uma sessão única; o retorno visual do navegador não concede o prêmio por conta própria. O jogo também agenda um In-App Interstitial automático a cada 5 minutos, com limite de 12 por hora, apenas no Telegram Mini App. Os anúncios não concedem GRAM beta diretamente.
 
 ### Ativar anúncios reais no Monetag
 
